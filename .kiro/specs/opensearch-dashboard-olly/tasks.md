@@ -6,26 +6,26 @@ Incrementally build the OpenSearch Dashboard demo with Olly AI chatbot. Start wi
 
 ## Tasks
 
-- [-] 1. Project scaffolding, color system, and core types
-  - [-] 1.1 Initialize Vite + React + TypeScript project and install dependencies
+- [x] 1. Project scaffolding, color system, and core types
+  - [x] 1.1 Initialize Vite + React + TypeScript project and install dependencies
     - Scaffold with `npm create vite@latest -- --template react-ts`
     - Install dependencies: `tailwindcss`, `@tailwindcss/vite`, `shadcn/ui`, `lucide-react`, `react-router-dom`
     - Initialize shadcn/ui via `npx shadcn-ui@latest init`
     - Add required shadcn components: Button, Card, Sheet, Dialog, ScrollArea, Tabs, Tooltip, DropdownMenu, Toast
     - _Requirements: N/A (infrastructure)_
 
-  - [ ] 1.2 Configure Tailwind CSS with OUI color tokens and fonts
+  - [x] 1.2 Configure Tailwind CSS with OUI color tokens and fonts
     - Define CSS custom properties for light/dark OUI tokens in `src/index.css`
     - Extend `tailwind.config.ts` with `oui` color mappings and Source Sans 3 / Source Code Pro font families
     - Add Google Fonts links to `index.html` for Source Sans 3 and Source Code Pro
     - _Requirements: Design Color System section_
 
-  - [ ] 1.3 Create data model types and service interfaces
+  - [x] 1.3 Create data model types and service interfaces
     - Create `src/types/index.ts` with all TypeScript interfaces: `Workspace`, `Conversation`, `ChatMessage`, `CanvasPage`, `Alert`, `DataSource`, `SuggestedPrompt`, `FeedItem`, `OllyState`, `ChatResponse`
     - Create `src/services/olly-service.ts`, `src/services/workspace-service.ts`, `src/services/alert-service.ts` with stub implementations
     - _Requirements: 8.3, 8.4, 9.1, 12.1, 15.4, 16.4_
 
-  - [ ] 1.4 Implement OllyStateProvider context with priority-based state machine
+  - [x] 1.4 Implement OllyStateProvider context with priority-based state machine
     - Create `src/contexts/OllyStateContext.tsx` with `OllyState`, `OllyStateContext`, and `OllyStateProvider`
     - Enforce priority rules: `investigating` > `thinking` > `normal`
     - Block lower-priority transitions while a higher-priority state is active
@@ -37,7 +37,7 @@ Incrementally build the OpenSearch Dashboard demo with Olly AI chatbot. Start wi
     - Generate random sequences of state transitions starting from 'investigating' → verify state remains 'investigating' until explicit completion
     - **Validates: Requirements 2.1, 2.2**
 
-  - [ ] 1.6 Implement WorkspaceProvider context
+  - [x] 1.6 Implement WorkspaceProvider context
     - Create `src/contexts/WorkspaceContext.tsx` managing workspace list, CRUD operations, and privacy state
     - Implement `createWorkspace`, `shareWorkspace`, `listPublicWorkspaces` methods
     - New workspaces default to `privacy: 'private'`
@@ -51,11 +51,11 @@ Incrementally build the OpenSearch Dashboard demo with Olly AI chatbot. Start wi
     - Generate random private workspaces → verify share action sets `privacy` to `'public'`
     - **Validates: Requirements 11.3, 17.3**
 
-- [ ] 2. Checkpoint - Ensure all tests pass
+- [x] 2. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 3. OllyIcon component and shared UI
-  - [ ] 3.1 Implement OllyIcon component with state-driven visuals
+- [x] 3. OllyIcon component and shared UI
+  - [x] 3.1 Implement OllyIcon component with state-driven visuals
     - Create `src/components/OllyIcon.tsx` rendering the OpenSearch logo SVG
     - Normal state: static logo with `text-oui-primary`, no animation
     - Thinking state: logo with `text-oui-primary` and circling animation on bottom-right outline
@@ -68,7 +68,7 @@ Incrementally build the OpenSearch Dashboard demo with Olly AI chatbot. Start wi
     - Generate random OllyState values → verify OllyIcon renders correct visual variant (classes and animation)
     - **Validates: Requirements 1.1, 1.2, 1.3**
 
-  - [ ] 3.3 Implement SuggestedPrompts component
+  - [x] 3.3 Implement SuggestedPrompts component
     - Create `src/components/SuggestedPrompts.tsx` rendering prompt chips as shadcn `Button` (variant="outline")
     - Include action-based prompts ("What happened during last deployment", "Create alert") and workspace-based prompts ("Create an observability workspace", "Create a security analytics workspace")
     - Clicking a prompt populates the associated text area with the prompt text
@@ -79,8 +79,8 @@ Incrementally build the OpenSearch Dashboard demo with Olly AI chatbot. Start wi
     - Generate random SuggestedPrompt objects → verify text area value matches prompt text exactly
     - **Validates: Requirements 7.4**
 
-- [ ] 4. Home Page
-  - [ ] 4.1 Implement LeftNav component (expanded mode)
+- [x] 4. Home Page
+  - [x] 4.1 Implement LeftNav component (expanded mode)
     - Create `src/components/LeftNav.tsx` supporting `expanded` and `collapsed` modes
     - Expanded mode: display public workspaces list in shadcn `ScrollArea`, utility links (Dev Tools, Keyboard Shortcuts, Help, User) with Lucide icons at bottom
     - Clicking a workspace navigates to the Workspace page
@@ -94,7 +94,7 @@ Incrementally build the OpenSearch Dashboard demo with Olly AI chatbot. Start wi
     - Generate random public workspaces → verify click handler receives correct workspace ID
     - **Validates: Requirements 4.3**
 
-  - [ ] 4.3 Implement Home Page layout with greeting, OllyIcon, feed, and text area
+  - [x] 4.3 Implement Home Page layout with greeting, OllyIcon, feed, and text area
     - Create `src/pages/HomePage.tsx` composing LeftNav (expanded), greeting headline, OllyIcon, Feed area, ViewToggle (shadcn `Tabs` with Feed/Application Map/Service), SuggestedPrompts, and text area
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 5.1, 5.2, 5.3_
 
@@ -106,13 +106,13 @@ Incrementally build the OpenSearch Dashboard demo with Olly AI chatbot. Start wi
     - Generate random view toggle selections → verify correct view component is rendered
     - **Validates: Requirements 5.3**
 
-  - [ ] 4.5 Implement ConfigPanel (Alert/Goal configuration)
+  - [x] 4.5 Implement ConfigPanel (Alert/Goal configuration)
     - Create `src/components/ConfigPanel.tsx` using shadcn `Sheet` sliding in from the right
     - Triggered by a button in the Home page main content area
     - Contains editing controls for Alerts and Olly goals
     - _Requirements: 6.1, 6.2_
 
-  - [ ] 4.6 Implement workspace creation from Home page prompt submission
+  - [x] 4.6 Implement workspace creation from Home page prompt submission
     - When user submits a prompt from the Home page text area, create a new private workspace via WorkspaceService
     - Generate workspace name by summarizing the prompt, auto-assign an icon
     - Navigate to the new Workspace page after creation
@@ -126,11 +126,11 @@ Incrementally build the OpenSearch Dashboard demo with Olly AI chatbot. Start wi
     - Generate random prompts → verify navigation is called with the new workspace ID
     - **Validates: Requirements 8.2**
 
-- [ ] 5. Checkpoint - Ensure all tests pass
+- [x] 5. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6. Workspace Page - Chat Panel
-  - [ ] 6.1 Implement ChatPanel component with multi-conversation support
+- [x] 6. Workspace Page - Chat Panel
+  - [x] 6.1 Implement ChatPanel component with multi-conversation support
     - Create `src/components/ChatPanel.tsx` with header (conversation name, new conversation button, view all button, collapse button using Lucide icons)
     - Chat body using shadcn `ScrollArea` for message history
     - Text area with SuggestedPrompts for user input
@@ -149,7 +149,7 @@ Incrementally build the OpenSearch Dashboard demo with Olly AI chatbot. Start wi
     - Generate random user messages → verify chat body contains both sent message and response
     - **Validates: Requirements 12.6**
 
-  - [ ] 6.3 Implement ChatPanel collapse/reopen behavior
+  - [x] 6.3 Implement ChatPanel collapse/reopen behavior
     - Collapse button hides the ChatPanel
     - Clicking Olly icon in collapsed LeftNav reopens the ChatPanel
     - _Requirements: 13.1, 13.2, 13.3_
@@ -159,8 +159,8 @@ Incrementally build the OpenSearch Dashboard demo with Olly AI chatbot. Start wi
     - Start with visible ChatPanel → collapse → reopen via Olly icon → verify visible state restored
     - **Validates: Requirements 13.1, 13.2, 13.3**
 
-- [ ] 7. Workspace Page - Canvas and ViewList
-  - [ ] 7.1 Implement Canvas component with scrollable page containers
+- [x] 7. Workspace Page - Canvas and ViewList
+  - [x] 7.1 Implement Canvas component with scrollable page containers
     - Create `src/components/Canvas.tsx` displaying the active page as main content
     - Wrap each page in a container element
     - Support infinite scrolling via shadcn `ScrollArea` for multiple page containers
@@ -172,7 +172,7 @@ Incrementally build the OpenSearch Dashboard demo with Olly AI chatbot. Start wi
     - Generate random CanvasPage sets with an active page → verify active page is main content and all pages are in containers
     - **Validates: Requirements 15.1, 15.2**
 
-  - [ ] 7.3 Implement ViewList (timeline) component
+  - [x] 7.3 Implement ViewList (timeline) component
     - Create `src/components/ViewList.tsx` showing all opened pages as a scrollable timeline
     - Click a page entry to set it as active on the Canvas
     - Close button (Lucide `X`) removes a page from the list and Canvas
@@ -191,19 +191,19 @@ Incrementally build the OpenSearch Dashboard demo with Olly AI chatbot. Start wi
     - Generate random initial page sets, add a page, close it → verify ViewList returns to original set
     - **Validates: Requirements 16.3, 16.5**
 
-- [ ] 8. Workspace Page - Layout and Header
-  - [ ] 8.1 Implement WorkspaceHeader component
+- [x] 8. Workspace Page - Layout and Header
+  - [x] 8.1 Implement WorkspaceHeader component
     - Create `src/components/WorkspaceHeader.tsx` with workspace icon, name, data sources list, Share button (Lucide `Share2`), Settings button (Lucide `Settings`)
     - Share button transitions workspace from private to public
     - _Requirements: 11.1, 11.2, 11.3, 11.4_
 
-  - [ ] 8.2 Implement WorkspacePage layout
+  - [x] 8.2 Implement WorkspacePage layout
     - Create `src/pages/WorkspacePage.tsx` composing collapsed LeftNav (with Home button and Olly icon), WorkspaceHeader, ChatPanel, Canvas, and ViewList
     - LeftNav Home button navigates back to Home page
     - LeftNav Olly icon reflects current state and reopens ChatPanel when collapsed
     - _Requirements: 10.1, 10.2, 10.3, 10.4_
 
-  - [ ] 8.3 Implement chat-driven canvas navigation
+  - [x] 8.3 Implement chat-driven canvas navigation
     - When a chat response contains `pageAction` of type 'open', add the page to the Canvas
     - When a chat response contains `pageAction` of type 'navigate' for an existing page, scroll/navigate Canvas to that page
     - _Requirements: 14.1, 14.2_
@@ -216,11 +216,11 @@ Incrementally build the OpenSearch Dashboard demo with Olly AI chatbot. Start wi
     - Generate random ChatResponses with 'navigate' pageAction for existing pages → verify Canvas sets active page
     - **Validates: Requirements 14.2**
 
-- [ ] 9. Checkpoint - Ensure all tests pass
+- [x] 9. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 10. Alert-triggered investigations and routing
-  - [ ] 10.1 Implement alert-triggered investigation flow
+- [x] 10. Alert-triggered investigations and routing
+  - [x] 10.1 Implement alert-triggered investigation flow
     - Wire AlertService to OllyStateProvider: when an alert triggers, transition Olly to 'investigating' state
     - Create a new workspace for the investigation via WorkspaceService
     - Apply investigating visual state globally (dashboard background accent tint)
@@ -232,14 +232,14 @@ Incrementally build the OpenSearch Dashboard demo with Olly AI chatbot. Start wi
     - Generate random Alert objects → verify Olly transitions to 'investigating' and a workspace is created
     - **Validates: Requirements 9.1, 9.2**
 
-  - [ ] 10.3 Set up React Router with Home and Workspace routes
+  - [x] 10.3 Set up React Router with Home and Workspace routes
     - Configure `react-router-dom` with routes: `/` → HomePage, `/workspace/:workspaceId` → WorkspacePage
     - Wrap app in OllyStateProvider, WorkspaceProvider, and Router
     - Handle navigation to non-existent workspace by redirecting to Home with toast
     - _Requirements: 4.3, 8.2, 10.3_
 
-- [ ] 11. Error handling and polish
-  - [ ] 11.1 Implement error handling across all components
+- [x] 11. Error handling and polish
+  - [x] 11.1 Implement error handling across all components
     - OllyService failure: error message in ChatPanel with retry (max 3, exponential backoff), revert Olly state
     - Workspace creation failure: toast notification, preserve prompt text
     - Canvas page load failure: error placeholder with AlertTriangle icon and retry button
@@ -248,12 +248,12 @@ Incrementally build the OpenSearch Dashboard demo with Olly AI chatbot. Start wi
     - Non-existent workspace: redirect to Home with toast
     - _Requirements: Design Error Handling section_
 
-  - [ ] 11.2 Wire App entry point with all providers and dark mode support
+  - [x] 11.2 Wire App entry point with all providers and dark mode support
     - Update `src/App.tsx` to compose Router, OllyStateProvider, WorkspaceProvider, and shadcn ThemeProvider
     - Support dark mode via `.dark` class toggle on root element
     - _Requirements: Design Color System (dark mode)_
 
-- [ ] 12. Final checkpoint - Ensure all tests pass
+- [x] 12. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
