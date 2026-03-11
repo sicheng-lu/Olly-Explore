@@ -14,10 +14,14 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { PAGE_TYPES as REGISTERED_PAGE_TYPES } from '@/components/pages/page-types';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from '@/components/ui/tooltip';
 import type { CanvasPage } from '@/types';
 
 interface ViewListProps {
@@ -41,6 +45,16 @@ const VIEW_PAGE_TYPES = [
 function pageIcon(type: string) {
   const found = VIEW_PAGE_TYPES.find((p) => p.type === type);
   return found?.icon ?? FileText;
+}
+
+function formatAddedAt(date?: Date): string {
+  if (!date) return '';
+  return date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 export function ViewList({
@@ -95,58 +109,73 @@ export function ViewList({
           {sorted.map((page) => {
             const isActive = page.id === activePageId;
             const Icon = pageIcon(page.type);
+            const addedLabel = page.addedBy === 'olly' ? 'Added by Olly' : 'Added by user';
+            const timeLabel = formatAddedAt(page.addedAt);
 
             return (
-              <div
-                key={page.id}
-                role="button"
-                tabIndex={0}
-                className={`group relative flex h-[80px] flex-col items-center justify-center gap-2 rounded-lg cursor-pointer transition-colors bg-white/40 backdrop-blur-md border border-white/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7),inset_0_-1px_0_0_rgba(255,255,255,0.2)] hover:bg-white/60 ${
-                  isActive ? 'ring-2 ring-oui-link' : ''
-                }`}
-                onClick={() => onPageClick(page.id)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onPageClick(page.id);
-                  }
-                }}
-                data-testid={`view-list-entry-${page.id}`}
-                data-active={isActive}
-              >
-                {/* Close button — visible on hover, hidden for summary */}
-                {page.type !== 'paragraph' && (
-                <button
-                  className={`absolute -top-2 left-1/2 -translate-x-1/2 z-10 hidden items-center gap-0.5 whitespace-nowrap rounded-full px-2 py-1 shadow-sm group-hover:flex ${
-                    page.type === 'hypothesis'
-                      ? 'bg-red-500 text-white hover:bg-red-600'
-                      : 'bg-white text-slate-500 hover:bg-slate-50'
-                  }`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onPageClose(page.id);
-                  }}
-                  aria-label={`${page.type === 'hypothesis' ? 'Rule out' : 'Remove'} ${page.title}`}
-                  data-testid={`view-list-close-${page.id}`}
-                >
-                  <X className="size-3.5" />
-                  <span className="text-xs font-medium leading-none">
-                    {page.type === 'hypothesis' ? 'Rule out' : 'Remove'}
-                  </span>
-                </button>
-                )}
+              <TooltipProvider key={page.id}>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        className={`group relative flex h-[80px] flex-col items-center justify-center gap-2 rounded-lg cursor-pointer transition-colors bg-white/40 backdrop-blur-md border border-white/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7),inset_0_-1px_0_0_rgba(255,255,255,0.2)] hover:bg-white/60 ${
+                          isActive ? 'ring-2 ring-oui-link' : ''
+                        }`}
+                        onClick={() => onPageClick(page.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            onPageClick(page.id);
+                          }
+                        }}
+                        data-testid={`view-list-entry-${page.id}`}
+                        data-active={isActive}
+                      />
+                    }
+                  >
+                    {/* Close button — visible on hover, hidden for summary */}
+                    {page.type !== 'paragraph' && (
+                    <button
+                      className={`absolute -top-2 left-1/2 -translate-x-1/2 z-10 hidden items-center gap-0.5 whitespace-nowrap rounded-full px-2 py-1 shadow-sm group-hover:flex ${
+                        page.type === 'hypothesis'
+                          ? 'bg-red-500 text-white hover:bg-red-600'
+                          : 'bg-white text-slate-500 hover:bg-slate-50'
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPageClose(page.id);
+                      }}
+                      aria-label={`${page.type === 'hypothesis' ? 'Rule out' : 'Remove'} ${page.title}`}
+                      data-testid={`view-list-close-${page.id}`}
+                    >
+                      <X className="size-3.5" />
+                      <span className="text-xs font-medium leading-none">
+                        {page.type === 'hypothesis' ? 'Rule out' : 'Remove'}
+                      </span>
+                    </button>
+                    )}
 
-                <Icon
-                  className="size-5 text-oui-dark-shade"
-                />
-                <span
-                  className={`w-full truncate text-center text-xs leading-tight px-1 ${
-                    isActive ? 'text-oui-darkest-shade font-medium' : 'text-oui-dark-shade'
-                  }`}
-                >
-                  {page.title}
-                </span>
-              </div>
+                    <Icon
+                      className="size-5 text-oui-dark-shade"
+                    />
+                    <span
+                      className={`w-full truncate text-center text-xs leading-tight px-1 ${
+                        isActive ? 'text-oui-darkest-shade font-medium' : 'text-oui-dark-shade'
+                      }`}
+                    >
+                      {page.title}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" sideOffset={8}>
+                    <div className="flex flex-col gap-0.5">
+                      <span>{addedLabel}</span>
+                      {timeLabel && <span className="opacity-70">{timeLabel}</span>}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             );
           })}
         </div>

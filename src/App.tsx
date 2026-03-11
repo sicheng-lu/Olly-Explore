@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { OllyStateProvider } from '@/contexts/OllyStateContext';
 import { WorkspaceProvider } from '@/contexts/WorkspaceContext';
 import { HomePage } from '@/pages/HomePage';
@@ -7,7 +7,7 @@ import { Toaster } from '@/components/ui/sonner';
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <OllyStateProvider>
         <WorkspaceProvider>
           <Routes>
@@ -19,7 +19,7 @@ function App() {
           <Toaster />
         </WorkspaceProvider>
       </OllyStateProvider>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 

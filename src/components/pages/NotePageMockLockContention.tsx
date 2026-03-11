@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { StickyNote, Code } from 'lucide-react';
+import { Code } from 'lucide-react';
 
 import { GeneratingAnimation } from './GeneratingAnimation';
 

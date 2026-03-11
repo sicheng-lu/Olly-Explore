@@ -1,19 +1,10 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
-  Search,
-  BarChart3,
-  Bell,
   FileText,
-  LayoutDashboard,
-  Table,
   AlertTriangle,
-  Activity,
   RotateCcw,
-  Shield,
   Compass,
-  StickyNote,
 } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { DiscoverPage } from '@/components/pages/DiscoverPage';
 import { DashboardPage } from '@/components/pages/DashboardPage';
@@ -36,21 +27,7 @@ interface CanvasProps {
   hypothesisRuledOut?: boolean;
 }
 
-function pageTypeConfig(type: string) {
-  switch (type) {
-    case 'discover': return { icon: Search, label: 'Discover' };
-    case 'logs': return { icon: Search, label: 'Logs' };
-    case 'traces': return { icon: Search, label: 'Traces' };
-    case 'dashboard': return { icon: LayoutDashboard, label: 'Dashboard' };
-    case 'alerting': return { icon: Bell, label: 'Alerting' };
-    case 'visualize': return { icon: BarChart3, label: 'Visualize' };
-    case 'observability': return { icon: Shield, label: 'Overview' };
-    case 'paragraph': return { icon: FileText, label: 'Summary' };
-    case 'hypothesis': return { icon: Activity, label: 'Hypothesis' };
-    case 'note': return { icon: StickyNote, label: 'Note' };
-    default: return { icon: FileText, label: type.charAt(0).toUpperCase() + type.slice(1) };
-  }
-}
+
 
 /* ── Progress bar for paragraph pages ── */
 
@@ -344,6 +321,8 @@ function HypothesisPage({
       title,
       order: allPages.length,
       content: contentKey,
+      addedBy: 'olly',
+      addedAt: new Date(),
     });
   };
 
@@ -362,6 +341,8 @@ function HypothesisPage({
       title,
       order: allPages.length,
       content: contentKey,
+      addedBy: 'olly',
+      addedAt: new Date(),
     });
   };
 

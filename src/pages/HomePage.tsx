@@ -9,7 +9,6 @@ import {
   AlertTriangle,
   Plus,
   ArrowUp,
-  Ellipsis,
   ChevronDown,
   ChevronUp,
   Mic,
@@ -20,18 +19,10 @@ import {
 import { LeftNav } from '@/components/LeftNav';
 import { OllyIcon } from '@/components/OllyIcon';
 import { SuggestedPrompts } from '@/components/SuggestedPrompts';
-import { ConfigPanel } from '@/components/ConfigPanel';
 import { AlertSkillsPanel } from '@/components/AlertSkillsPanel';
 import { useOllyState } from '@/contexts/OllyStateContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAlertInvestigation } from '@/hooks/useAlertInvestigation';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from '@/components/ui/dropdown-menu';
 import type { FeedItem } from '@/types';
 
 /* ── Mock data ── */
@@ -1192,7 +1183,7 @@ export function HomePage({ investigatingOverride = false }: { investigatingOverr
     }
   }, [fromWorkspace]);
 
-  const { activeAlert, investigationWorkspaceId } = useAlertInvestigation();
+  useAlertInvestigation();
 
   const isInvestigating = investigatingOverride || ollyState === 'investigating';
   const [insightsReady, setInsightsReady] = useState(!isInvestigating);
@@ -1242,6 +1233,8 @@ export function HomePage({ investigatingOverride = false }: { investigatingOverr
         type: 'paragraph',
         title: 'Summary',
         order: 0,
+        addedBy: 'olly',
+        addedAt: new Date(),
         content: `# P95 Latency Alert — Payment Processing Service\n\nEndpoint /api/v1/payments/process has breached the 800ms latency threshold. Current P95 is 2,012ms, sustained for 13 minutes.\n\n> ⚠️ This incident correlates with the PaymentService v3.8.2 deployment at 10:42 UTC. Immediate attention required.\n\n[tags:Payment service|20,000 Impacted customers|Sev-1|Security risk]\n\n[chart]\n\n---\n\n## Impact\n\n- Checkout completion rate dropped from 94% → 31%\n- ~20,000 customers affected during peak traffic window\n- Downstream services (receipt generation, inventory reservation) experiencing cascading timeouts\n- 💰 Estimated revenue impact: ~$48K/min\n\n[bar:31:100:bg-red-500:Checkout Completion Rate]\n\n---\n\n## What Olly Has Investigated\n\n- ✅ Confirmed latency spike is isolated to /payments/process — other payment endpoints are healthy\n- ✅ Correlated with PaymentService v3.8.2 deployment at 10:42 UTC\n- ✅ Database connection pool for payments-db-primary at 97% saturation\n- ✅ No infrastructure issues detected (CPU 42%, Memory 61%, Network normal)\n- ✅ Upstream dependencies (Stripe API, fraud-check service) responding normally\n- ✅ Identified new ORM query pattern in v3.8.2 that opens 3x connections per transaction\n\n---\n\n## Hypotheses\n\n- 🔴 DB Connection Pool Exhaustion — v3.8.2 introduced a new ORM pattern opening 3 parallel connections per transaction instead of 1, pushing pool utilization from 45% to 97% [view:Hypothesis: DB Connection Pool Exhaustion]\n- 🟠 Lock Contention on Payment Records — A new row-level locking strategy acquires exclusive locks earlier in the transaction, causing 68% of handler threads to enter WAITING state [view:Hypothesis: Lock Contention on Payment Records]\n\n---\n\n## Suggested Next Steps\n\n- Roll back PaymentService v3.8.2 → v3.8.1 to restore normal latency\n- Investigate new database query pattern in v3.8.2 causing connection pool exhaustion\n- Scale up payments-db connection pool as temporary mitigation\n- Enable circuit breaker on checkout flow to prevent cascading failures\n- Review the 2 hypothesis pages for detailed evidence and validation steps`,
       },
       {
@@ -1250,12 +1243,16 @@ export function HomePage({ investigatingOverride = false }: { investigatingOverr
         title: 'Dashboard',
         order: 1,
         content: 'mock-dashboard',
+        addedBy: 'olly',
+        addedAt: new Date(),
       },
       {
         id: crypto.randomUUID(),
         type: 'hypothesis',
         title: 'Hypothesis: DB Connection Pool Exhaustion',
         order: 2,
+        addedBy: 'olly',
+        addedAt: new Date(),
         content: `> The v3.8.2 deployment introduced a new ORM query pattern that opens multiple database connections per transaction instead of reusing a single connection, causing pool saturation at 97%.\n\n[bar:97:100:bg-red-500:DB Connection Pool Utilization]\n\n[bar:45:100:bg-emerald-500:Baseline Pool Utilization (2 weeks avg)]\n\n---\n\n## Supporting Evidence\n\n- Connection pool utilization jumped from 45% to 97% within 5 minutes of the v3.8.2 deployment\n- The v3.8.2 changelog includes a refactor of the payment validation logic that splits a single transaction into 3 parallel sub-queries\n- Historical data shows connection pool usage was stable at 40–50% for the past 2 weeks under similar traffic\n- Active connections per request increased from 1 to 3.2 (average) post-deployment\n\n---\n\n## How to Validate\n\n- Compare the DB connection acquisition pattern between v3.8.1 and v3.8.2 in the service traces\n- Check if rolling back to v3.8.1 restores connection pool utilization to baseline\n- Run a load test against v3.8.2 in staging with connection pool monitoring enabled`,
       },
       {
@@ -1263,6 +1260,8 @@ export function HomePage({ investigatingOverride = false }: { investigatingOverr
         type: 'hypothesis',
         title: 'Hypothesis: Lock Contention on Payment Records',
         order: 3,
+        addedBy: 'olly',
+        addedAt: new Date(),
         content: `> A new row-level locking strategy in v3.8.2 acquires exclusive locks earlier in the transaction lifecycle, causing concurrent payment requests to queue behind each other.\n\n[bar:68:100:bg-red-500:Payment Handler Threads in WAITING State]\n\n---\n\n## Supporting Evidence\n\n- Database slow query logs show a 12x increase in lock wait times on the payments table since 10:42 UTC\n- The P95 latency spike correlates more strongly with concurrent request count than with total request volume\n- Thread dump analysis shows 68% of payment handler threads are in WAITING state on DB lock acquisition\n- The issue is more pronounced during burst traffic patterns (consistent with lock convoy behavior)\n\n---\n\n## How to Validate\n\n- Analyze the payments table lock statistics before and after the deployment\n- Check if reducing max concurrent payment threads alleviates the latency (would confirm contention)\n- Review the v3.8.2 diff for changes to transaction isolation level or locking hints`,
       },
     ];
@@ -1313,7 +1312,7 @@ export function HomePage({ investigatingOverride = false }: { investigatingOverr
           {/* Scrollable content */}
           <div className="flex flex-1 flex-col items-center gap-6 w-[1000px] max-w-full px-6 overflow-y-auto">
             {/* Olly Icon */}
-            <OllyIcon size="large" logoSrc={isInvestigating ? (insightsReady ? '/image/Logo-v2.svg' : '/image/Logo-v3.svg') : undefined} />
+            <OllyIcon size="large" logoSrc={isInvestigating ? (insightsReady ? './image/Logo-v2.svg' : './image/Logo-v3.svg') : undefined} />
 
             {/* Greeting row + view toggle + config */}
             <div className="flex w-full items-center justify-between">

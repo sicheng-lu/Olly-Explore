@@ -7,9 +7,9 @@ interface SuggestedPromptsProps {
 }
 
 const WORKSPACE_TYPE_ICONS: Record<string, string> = {
-  observability: '/image/obv.svg',
-  security: '/image/security.svg',
-  search: '/image/search.svg',
+  observability: './image/obv.svg',
+  security: './image/security.svg',
+  search: './image/search.svg',
 };
 
 const DEFAULT_PROMPTS: (SuggestedPrompt & { workspaceType?: string })[] = [

@@ -61,7 +61,7 @@ export const GenerationService = {
     }
   },
 
-  async generateNote(workspacePages: CanvasPage[], prompt: string): Promise<GenerationResult> {
+  async generateNote(workspacePages: CanvasPage[], _prompt: string): Promise<GenerationResult> {
     const pageId = workspacePages.find((p) => p.type === 'note')?.id ?? 'note';
     const controller = new AbortController();
     activeGenerations.set(pageId, controller);

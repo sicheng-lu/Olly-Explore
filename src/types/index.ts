@@ -32,6 +32,8 @@ export interface CanvasPage {
   type: string;
   title: string;
   order: number;
+  addedBy?: 'olly' | 'user';
+  addedAt?: Date;
   content?: string;
   generationStatus?: 'idle' | 'generating' | 'complete' | 'error';
   generationError?: string;
@@ -59,7 +61,7 @@ export interface SuggestedPrompt {
 
 export interface FeedItem {
   id: string;
-  type: 'event' | 'insight';
+  type: 'event' | 'insight' | 'scaling';
   title: string;
   description: string;
   timestamp: Date;

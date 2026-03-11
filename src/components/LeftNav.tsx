@@ -17,10 +17,10 @@ import { Button } from '@/components/ui/button';
 import type { Workspace } from '@/types';
 
 const WORKSPACE_TYPE_ICONS: Record<string, { svg: string; alt: string }> = {
-  observability: { svg: '/image/obv.svg', alt: 'Observability' },
-  security: { svg: '/image/security.svg', alt: 'Security' },
-  search: { svg: '/image/search.svg', alt: 'Search' },
-  default: { svg: '/image/workspace.svg', alt: 'Workspace' },
+  observability: { svg: './image/obv.svg', alt: 'Observability' },
+  security: { svg: './image/security.svg', alt: 'Security' },
+  search: { svg: './image/search.svg', alt: 'Search' },
+  default: { svg: './image/workspace.svg', alt: 'Workspace' },
 };
 
 const WORKSPACE_COLORS = [
@@ -70,10 +70,9 @@ export function LeftNav({
   animate = false,
   className = '',
 }: LeftNavProps) {
-  const { workspaces, listPublicWorkspaces } = useWorkspace();
+  const { workspaces } = useWorkspace();
   const { state: ollyState } = useOllyState();
 
-  const publicWorkspaces = listPublicWorkspaces();
   const isInvestigating = isInvestigatingProp ?? ollyState === 'investigating';
 
   // Track which content to show — delayed so animation plays before swap
@@ -150,9 +149,7 @@ export function LeftNav({
 
 function ExpandedNav({
   allWorkspaces,
-  isInvestigating,
   onWorkspaceClick,
-  animate,
   className,
 }: {
   allWorkspaces: Workspace[];
@@ -181,7 +178,7 @@ function ExpandedNav({
       >
         <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-4 px-4">
           <div className="flex size-12 items-center justify-center shrink-0">
-            <img src="/image/workspace.svg" alt="Workspaces" className="size-4" />
+            <img src="./image/workspace.svg" alt="Workspaces" className="size-4" />
           </div>
 
         {/* Search bar */}
@@ -273,7 +270,6 @@ function CollapsedNav({
   showHomeButton = true,
   isInvestigating,
   logoOverride,
-  animate,
   className,
 }: {
   allWorkspaces: Workspace[];
@@ -331,7 +327,7 @@ function CollapsedNav({
           className="flex size-6 items-center justify-center"
           aria-label="Workspaces"
         >
-          <img src="/image/workspace.svg" alt="Workspaces" className="size-4" />
+          <img src="./image/workspace.svg" alt="Workspaces" className="size-4" />
         </button>
 
         {/* Workspace popover */}
@@ -431,7 +427,7 @@ function CollapsedNav({
             className="flex size-6 items-center p-[3px]"
             aria-label="Olly"
           >
-            <OllyIcon size="small" logoSrc={logoOverride ?? (isInvestigating ? '/image/Logo-v2.svg' : undefined)} />
+            <OllyIcon size="small" logoSrc={logoOverride ?? (isInvestigating ? './image/Logo-v2.svg' : undefined)} />
           </button>
         )}
       </div>

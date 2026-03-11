@@ -122,7 +122,6 @@ export function ChatPanel({
   ollyThinkingPhase = 'gathering',
   onCollapse,
   onNewConversation,
-  onSelectConversation,
   onOpenPage,
   onNavigateToPage,
 }: ChatPanelProps) {

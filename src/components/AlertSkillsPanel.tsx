@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { ShieldAlert, X } from 'lucide-react';
+import { X } from 'lucide-react';
 
 interface MonitorItem {
   id: string;
@@ -28,7 +28,7 @@ export function AlertSkillsPanel({ open, onClose }: AlertSkillsPanelProps) {
   const [monitors, setMonitors] = useState(MOCK_MONITORS);
   const [visible, setVisible] = useState(false);
   const [animating, setAnimating] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     if (open) {

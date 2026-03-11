@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, ChevronDown, ChevronRight, Download, Filter } from 'lucide-react';
+import { Search, ChevronDown, Download, Filter } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const SELECTED_FIELDS = ['_source'];

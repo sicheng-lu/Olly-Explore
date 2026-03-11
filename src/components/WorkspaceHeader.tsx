@@ -18,11 +18,11 @@ import {
 import type { Workspace } from '@/types';
 
 const WORKSPACE_TYPE_ICONS: Record<string, { svg: string; alt: string }> = {
-  observability: { svg: '/image/obv.svg', alt: 'Observability' },
-  security: { svg: '/image/security.svg', alt: 'Security' },
-  search: { svg: '/image/search.svg', alt: 'Search' },
-  investigation: { svg: '/image/security.svg', alt: 'Investigation' },
-  default: { svg: '/image/workspace.svg', alt: 'Workspace' },
+  observability: { svg: './image/obv.svg', alt: 'Observability' },
+  security: { svg: './image/security.svg', alt: 'Security' },
+  search: { svg: './image/search.svg', alt: 'Search' },
+  investigation: { svg: './image/security.svg', alt: 'Investigation' },
+  default: { svg: './image/workspace.svg', alt: 'Workspace' },
 };
 
 const WORKSPACE_COLORS = [
@@ -105,14 +105,14 @@ export function WorkspaceHeader({ workspace, viewListCollapsed = false, onShare,
         </div>
 
         <Dialog>
-          <DialogTrigger asChild>
+          <DialogTrigger render={
             <button
               className="flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-white/60 bg-white/40 backdrop-blur-md border border-white/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7),inset_0_-1px_0_0_rgba(255,255,255,0.2)]"
               aria-label="Share workspace"
               data-testid="share-button"
-            >
+            />
+          }>
               <Share2 className="size-4 text-oui-dark-shade" />
-            </button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[420px]">
             <DialogHeader>
@@ -177,14 +177,14 @@ export function WorkspaceHeader({ workspace, viewListCollapsed = false, onShare,
         </Dialog>
 
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+          <DropdownMenuTrigger render={
             <button
               className="flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-white/60 bg-white/40 backdrop-blur-md border border-white/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7),inset_0_-1px_0_0_rgba(255,255,255,0.2)]"
               aria-label="More options"
               data-testid="settings-button"
-            >
+            />
+          }>
               <Ellipsis className="size-4 text-oui-dark-shade" />
-            </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" sideOffset={4} className="min-w-[200px] p-2 space-y-1">
             <DropdownMenuItem onClick={onSettings} className="py-2">

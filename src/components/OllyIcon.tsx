@@ -12,13 +12,13 @@ const SIZE_MAP = {
   large: 48,
 } as const;
 
-export function OllyIcon({ size = 'medium', className = '', logoSrc = '/image/Logo.svg' }: OllyIconProps) {
+export function OllyIcon({ size = 'medium', className = '', logoSrc = './image/Logo.svg' }: OllyIconProps) {
   const { state } = useOllyState();
 
   const px = SIZE_MAP[size];
   const isAnimating = state === 'thinking' || state === 'investigating';
   const colorClass = state === 'investigating' ? 'text-oui-danger' : 'text-oui-primary';
-  const isCustomLogo = logoSrc !== '/image/Logo.svg';
+  const isCustomLogo = logoSrc !== './image/Logo.svg';
 
   return (
     <div

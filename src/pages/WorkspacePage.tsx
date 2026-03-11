@@ -108,7 +108,7 @@ export function WorkspacePage() {
         // Start the thinking flow
         const isDbPool = hypothesisName.toLowerCase().includes('connection pool') || hypothesisName.toLowerCase().includes('db pool');
         setHypothesisRuledOut(true);
-        setLogoOverride('/image/Logo-v3.svg');
+        setLogoOverride('./image/Logo-v3.svg');
         setOllyThinking(true);
         setOllyThinkingPhase('gathering');
 
@@ -118,7 +118,7 @@ export function WorkspacePage() {
 
         setTimeout(() => {
           setOllyThinking(false);
-          setLogoOverride('/image/Logo-v2.svg');
+          setLogoOverride('./image/Logo-v2.svg');
 
           const responseText = isDbPool
             ? `I've ruled out "${hypothesisName}." While connection pool utilization is elevated at 97%, the trace analysis shows the pool wait times are a downstream effect of lock contention — not the primary cause.\n\nThis narrows our focus to the Lock Contention hypothesis. The SERIALIZABLE isolation level change in v3.8.2 is the more likely root cause. I recommend investigating trace lock-trace-445-contention-01 for confirmation.`
@@ -152,6 +152,8 @@ export function WorkspacePage() {
         title,
         order: workspace.canvasPages.length,
         content: contentKey,
+        addedBy: 'olly',
+        addedAt: new Date(),
       };
       addCanvasPage(workspace.id, newPage);
       setActivePageId(newPage.id);
@@ -163,6 +165,8 @@ export function WorkspacePage() {
       type: 'discover',
       title: `Page ${pageId.slice(0, 6)}`,
       order: workspace.canvasPages.length,
+      addedBy: 'olly',
+      addedAt: new Date(),
     };
     addCanvasPage(workspace.id, newPage);
     setActivePageId(pageId);
@@ -190,7 +194,7 @@ export function WorkspacePage() {
     if (isHypothesis && page) {
       // Switch logo to thinking state
       setHypothesisRuledOut(true);
-      setLogoOverride('/image/Logo-v3.svg');
+      setLogoOverride('./image/Logo-v3.svg');
       setOllyThinking(true);
       setOllyThinkingPhase('gathering');
       setChatCollapsed(false);
@@ -205,7 +209,7 @@ export function WorkspacePage() {
 
       setTimeout(() => {
         setOllyThinking(false);
-        setLogoOverride('/image/Logo-v2.svg');
+        setLogoOverride('./image/Logo-v2.svg');
 
         const responseText = isDbPool
           ? `I've ruled out "${hypothesisName}." While connection pool utilization is elevated at 97%, the trace analysis shows the pool wait times are a downstream effect of lock contention — not the primary cause.\n\nThis narrows our focus to the Lock Contention hypothesis. The SERIALIZABLE isolation level change in v3.8.2 is the more likely root cause. I recommend investigating trace lock-trace-445-contention-01 for confirmation.`
@@ -229,6 +233,8 @@ export function WorkspacePage() {
       type: pageType,
       title: pageType.charAt(0).toUpperCase() + pageType.slice(1),
       order: workspace.canvasPages.length,
+      addedBy: 'user',
+      addedAt: new Date(),
       ...(isRegisteredType ? { generationStatus: 'idle' as const } : {}),
     };
     addCanvasPage(workspace.id, newPage);
