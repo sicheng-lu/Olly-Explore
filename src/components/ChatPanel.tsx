@@ -21,7 +21,7 @@ import type { Conversation, ChatMessage } from '@/types';
 
 function TypewriterText({
   text,
-  speed = 8,
+  speed = 20,
   onComplete,
   onTick,
 }: {
@@ -42,8 +42,8 @@ function TypewriterText({
       return;
     }
     const timer = setTimeout(() => {
-      // Advance by a chunk for speed — 3 chars at a time feels fast but readable
-      setCharIndex((prev) => Math.min(prev + 3, text.length));
+      // Advance 1 char at a time for a slower, more deliberate feel
+      setCharIndex((prev) => Math.min(prev + 1, text.length));
       onTick?.();
     }, speed);
     return () => clearTimeout(timer);
@@ -100,6 +100,10 @@ interface ChatPanelProps {
   activeConversationId: string;
   isCollapsed: boolean;
   animate?: boolean;
+  pendingMessage?: ChatMessage | null;
+  onPendingMessageConsumed?: () => void;
+  ollyThinking?: boolean;
+  ollyThinkingPhase?: 'gathering' | 'thinking';
   onCollapse: () => void;
   onNewConversation: () => void;
   onSelectConversation: (conversationId: string) => void;
@@ -112,6 +116,10 @@ export function ChatPanel({
   activeConversationId,
   isCollapsed,
   animate = false,
+  pendingMessage = null,
+  onPendingMessageConsumed,
+  ollyThinking = false,
+  ollyThinkingPhase = 'gathering',
   onCollapse,
   onNewConversation,
   onSelectConversation,
@@ -136,6 +144,17 @@ export function ChatPanel({
   }, [animate]);
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId);
+
+  // Consume pending message into local messages
+  useEffect(() => {
+    if (pendingMessage && activeConversationId) {
+      setLocalMessages((prev) => ({
+        ...prev,
+        [activeConversationId]: [...(prev[activeConversationId] ?? []), pendingMessage],
+      }));
+      onPendingMessageConsumed?.();
+    }
+  }, [pendingMessage, activeConversationId, onPendingMessageConsumed]);
 
   const messages: ChatMessage[] = [
     ...(activeConversation?.messages ?? []),
@@ -242,7 +261,7 @@ export function ChatPanel({
       data-testid="chat-panel"
     >
       {/* Header */}
-      <div className="flex h-6 items-center gap-3 shrink-0">
+      <div className="flex h-6 items-center gap-3 shrink-0 mb-6">
         <span
           className="flex-1 truncate text-sm text-slate-500"
           data-testid="chat-panel-conversation-name"
@@ -334,14 +353,23 @@ export function ChatPanel({
               </div>
             );
           })}
-          {isSending && (
-            <div className="flex gap-2 justify-start" data-testid="chat-message-loading">
-              <div className="shrink-0 mt-1">
-                <OllyIcon size="small" />
-              </div>
-              <div className="rounded-lg px-3 py-2 text-xs text-slate-400">
-                Olly is thinking…
-              </div>
+          {(isSending || ollyThinking) && (
+            <div className="flex gap-2.5 items-center justify-start" data-testid="chat-message-loading">
+              <svg className="h-4 w-4 animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="#e0e7ff" strokeWidth="3" />
+                <path d="M12 2a10 10 0 0 1 10 10" stroke="url(#chat-spinner-grad)" strokeWidth="3" strokeLinecap="round" />
+                <defs>
+                  <linearGradient id="chat-spinner-grad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#6366f1" />
+                    <stop offset="100%" stopColor="#a855f7" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <span className="text-xs bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 bg-clip-text text-transparent font-medium">
+                {ollyThinking
+                  ? (ollyThinkingPhase === 'gathering' ? 'Gathering new info…' : 'Thinking…')
+                  : 'Olly is thinking…'}
+              </span>
             </div>
           )}
         </div>

@@ -3,12 +3,19 @@ import type { ChatResponse } from '@/types';
 interface MockPageMapping {
   pattern: RegExp;
   mockContentKey: string;
-  pageType: 'logs' | 'traces';
+  pageType: 'logs' | 'traces' | 'note';
   pageTitle: string;
   responseText: string;
 }
 
 const MOCK_PAGE_MAPPINGS: MockPageMapping[] = [
+  {
+    pattern: /confirm\b.*\broot/i,
+    mockContentKey: 'mock-note-lock',
+    pageType: 'note',
+    pageTitle: 'Note: Root Cause Confirmed',
+    responseText: `Got it — I've confirmed Trace ID abc123def456-pool-exhaust-01 as the root cause and created a note with the full analysis. The DB connection pool exhaustion from the new ORM pattern in v3.8.2 is causing the P95 latency spike.\n\nThe note includes the evidence from the trace, impact summary, and recommended next steps.`,
+  },
   {
     pattern: /logs?\b.*\b(connection pool|db pool|pool exhaustion)/i,
     mockContentKey: 'mock-logs-dbpool',
@@ -44,6 +51,19 @@ export const OllyService = {
     _conversationId: string,
     message: string
   ): Promise<ChatResponse> {
+    // Check for rule-out prompts first
+    const ruleOutMatch = message.match(/rule\s*out\b.*\bhypothesis[:\s]*(.+)/i);
+    if (ruleOutMatch) {
+      const hypothesisName = ruleOutMatch[1].trim();
+      return {
+        text: `Got it — I'll rule out "${hypothesisName}" and re-evaluate the remaining hypotheses. Let me gather some additional data to narrow things down.`,
+        pageAction: {
+          type: 'open',
+          pageId: `ruleout||${hypothesisName}`,
+        },
+      };
+    }
+
     // Check for investigation-related prompts
     for (const mapping of MOCK_PAGE_MAPPINGS) {
       if (mapping.pattern.test(message)) {

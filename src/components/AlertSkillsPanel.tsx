@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ShieldAlert, X } from 'lucide-react';
 
 interface MonitorItem {
@@ -10,14 +10,14 @@ interface MonitorItem {
   enabled: boolean;
 }
 
-const MOCK_MONITORS: MonitorItem[] = Array.from({ length: 6 }, (_, i) => ({
-  id: crypto.randomUUID(),
-  name: 'test-monitor',
-  triggerType: 'Per query',
-  interval: 'Every 1 minute',
-  visualization: 'Visual Graph',
-  enabled: true,
-}));
+const MOCK_MONITORS: MonitorItem[] = [
+  { id: '1', name: 'HTTP 5xx Error Rate', triggerType: 'Per query', interval: 'Every 1 minute', visualization: 'Line Chart', enabled: true },
+  { id: '2', name: 'DB Connection Pool Exhaustion', triggerType: 'Bucket level', interval: 'Every 5 minutes', visualization: 'Gauge', enabled: true },
+  { id: '3', name: 'Payment Latency p99 > 500ms', triggerType: 'Per query', interval: 'Every 1 minute', visualization: 'Area Chart', enabled: true },
+  { id: '4', name: 'SMS Delivery Failure Rate', triggerType: 'Per query', interval: 'Every 2 minutes', visualization: 'Bar Chart', enabled: false },
+  { id: '5', name: 'CPU Utilization > 85%', triggerType: 'Bucket level', interval: 'Every 1 minute', visualization: 'Heat Map', enabled: true },
+  { id: '6', name: 'Log Ingestion Lag > 30s', triggerType: 'Per query', interval: 'Every 3 minutes', visualization: 'Line Chart', enabled: true },
+];
 
 interface AlertSkillsPanelProps {
   open: boolean;
@@ -25,10 +25,24 @@ interface AlertSkillsPanelProps {
 }
 
 export function AlertSkillsPanel({ open, onClose }: AlertSkillsPanelProps) {
-  const [activeTab, setActiveTab] = useState<'alert' | 'skills'>('alert');
   const [monitors, setMonitors] = useState(MOCK_MONITORS);
+  const [visible, setVisible] = useState(false);
+  const [animating, setAnimating] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
-  if (!open) return null;
+  useEffect(() => {
+    if (open) {
+      setAnimating(true);
+      // Mount first, then trigger slide-in on next frame
+      requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
+    } else if (visible) {
+      setVisible(false);
+      timeoutRef.current = setTimeout(() => setAnimating(false), 300);
+    }
+    return () => clearTimeout(timeoutRef.current);
+  }, [open]);
+
+  if (!open && !animating) return null;
 
   const handleToggle = (id: string) => {
     setMonitors((prev) =>
@@ -37,13 +51,14 @@ export function AlertSkillsPanel({ open, onClose }: AlertSkillsPanelProps) {
   };
 
   return (
-    <div className="flex h-full w-[320px] shrink-0 flex-col gap-6 bg-white p-6">
+    <div
+      className={`flex h-full w-[320px] shrink-0 flex-col gap-6 bg-white/50 p-6 transition-all duration-300 ease-in-out ${
+        visible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+      }`}
+    >
       {/* Header */}
       <div className="flex items-center gap-2">
-        <div className="flex size-6 items-center justify-center">
-          <ShieldAlert className="size-4 text-oui-dark-shade" />
-        </div>
-        <span className="flex-1 text-xs text-oui-medium-shade">
+        <span className="flex-1 text-xs text-slate-900">
           Alert &amp; Skills for Olly
         </span>
         <button
@@ -52,30 +67,6 @@ export function AlertSkillsPanel({ open, onClose }: AlertSkillsPanelProps) {
           aria-label="Close panel"
         >
           <X className="size-4 text-oui-dark-shade" />
-        </button>
-      </div>
-
-      {/* Toggle Group */}
-      <div className="flex w-full items-center rounded-lg border border-oui-light-shade overflow-hidden">
-        <button
-          onClick={() => setActiveTab('alert')}
-          className={`flex flex-1 items-center justify-center p-2 text-xs font-medium transition-colors ${
-            activeTab === 'alert'
-              ? 'bg-oui-primary text-white'
-              : 'bg-oui-empty-shade text-oui-dark-shade hover:bg-oui-lightest-shade'
-          }`}
-        >
-          Alert
-        </button>
-        <button
-          onClick={() => setActiveTab('skills')}
-          className={`flex flex-1 items-center justify-center p-2 text-xs font-medium transition-colors ${
-            activeTab === 'skills'
-              ? 'bg-oui-primary text-white'
-              : 'bg-oui-empty-shade text-oui-dark-shade hover:bg-oui-lightest-shade'
-          }`}
-        >
-          Skills
         </button>
       </div>
 

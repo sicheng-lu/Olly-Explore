@@ -1,11 +1,27 @@
-import { Share2, Settings, Menu } from 'lucide-react';
+import { Share2, Ellipsis, PanelRightClose, PanelRightOpen, Pencil, FileText, Settings, Archive, Globe, Users, Copy } from 'lucide-react';
+import { useState } from 'react';
 import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import type { Workspace } from '@/types';
 
 const WORKSPACE_TYPE_ICONS: Record<string, { svg: string; alt: string }> = {
   observability: { svg: '/image/obv.svg', alt: 'Observability' },
   security: { svg: '/image/security.svg', alt: 'Security' },
   search: { svg: '/image/search.svg', alt: 'Search' },
+  investigation: { svg: '/image/security.svg', alt: 'Investigation' },
   default: { svg: '/image/workspace.svg', alt: 'Workspace' },
 };
 
@@ -24,12 +40,16 @@ function hashName(name: string): number {
 
 interface WorkspaceHeaderProps {
   workspace: Workspace;
+  viewListCollapsed?: boolean;
   onShare: () => void;
   onSettings: () => void;
   onMenu: () => void;
 }
 
-export function WorkspaceHeader({ workspace, onShare, onSettings, onMenu }: WorkspaceHeaderProps) {
+export function WorkspaceHeader({ workspace, viewListCollapsed = false, onShare, onSettings, onMenu }: WorkspaceHeaderProps) {
+  const [isPublic, setIsPublic] = useState(workspace.privacy === 'public');
+  const [shareEmail, setShareEmail] = useState('');
+
   const handleShare = () => {
     try {
       onShare();
@@ -48,7 +68,7 @@ export function WorkspaceHeader({ workspace, onShare, onSettings, onMenu }: Work
       className="flex h-[72px] items-center justify-between px-3"
     >
       {/* Left: icon + name */}
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center min-w-0" style={{ gap: '6px' }}>
         <div className="flex size-6 shrink-0 items-center justify-center">
           <div
             className="size-4"
@@ -73,7 +93,7 @@ export function WorkspaceHeader({ workspace, onShare, onSettings, onMenu }: Work
       </div>
 
       {/* Right: data sources + actions */}
-      <div className="flex items-center gap-3 shrink-0">
+      <div className="flex items-center shrink-0" style={{ gap: '9px' }}>
         {/* Cluster names */}
         <div className="flex items-center gap-2 text-xs text-oui-dark-shade">
           {['otel-domain', 'os219', 'xiaosi233'].map((name, i) => (
@@ -84,30 +104,119 @@ export function WorkspaceHeader({ workspace, onShare, onSettings, onMenu }: Work
           ))}
         </div>
 
-        <button
-          onClick={handleShare}
-          className="flex items-center justify-center rounded-lg bg-white p-2 transition-colors hover:bg-slate-50"
-          aria-label="Share workspace"
-          data-testid="share-button"
-        >
-          <Share2 className="size-4 text-oui-dark-shade" />
-        </button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <button
+              className="flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-white/60 bg-white/40 backdrop-blur-md border border-white/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7),inset_0_-1px_0_0_rgba(255,255,255,0.2)]"
+              aria-label="Share workspace"
+              data-testid="share-button"
+            >
+              <Share2 className="size-4 text-oui-dark-shade" />
+            </button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[420px]">
+            <DialogHeader>
+              <DialogTitle>Share workspace</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col gap-5 pt-2">
+              {/* Make public toggle */}
+              <div className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <Globe className="size-4 text-slate-500" />
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">Make public</p>
+                    <p className="text-xs text-slate-500">Anyone with the link can view</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setIsPublic(!isPublic); handleShare(); }}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors ${isPublic ? 'bg-blue-600' : 'bg-slate-200'}`}
+                  role="switch"
+                  aria-checked={isPublic}
+                >
+                  <span className={`pointer-events-none inline-block size-4 rounded-full bg-white shadow-sm ring-0 transition-transform ${isPublic ? 'translate-x-4' : 'translate-x-0.5'} mt-0.5`} />
+                </button>
+              </div>
 
-        <button
-          onClick={onSettings}
-          className="flex items-center justify-center rounded-lg bg-white p-2 transition-colors hover:bg-slate-50"
-          aria-label="Settings"
-          data-testid="settings-button"
-        >
-          <Settings className="size-4 text-oui-dark-shade" />
-        </button>
+              {/* Copy link */}
+              {isPublic && (
+                <button
+                  onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('Link copied'); }}
+                  className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
+                >
+                  <Copy className="size-3.5" />
+                  Copy link
+                </button>
+              )}
+
+              {/* Share to individuals */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-3">
+                  <Users className="size-4 text-slate-500" />
+                  <p className="text-sm font-medium text-slate-900">Share to individuals</p>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    value={shareEmail}
+                    onChange={(e) => setShareEmail(e.target.value)}
+                    placeholder="Enter email address"
+                    className="flex-1 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                  />
+                  <button
+                    onClick={() => { if (shareEmail.trim()) { toast.success(`Invited ${shareEmail}`); setShareEmail(''); } }}
+                    disabled={!shareEmail.trim()}
+                    className="rounded-md bg-slate-900 px-3 py-2 text-sm text-white hover:bg-slate-800 disabled:opacity-50"
+                  >
+                    Invite
+                  </button>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-white/60 bg-white/40 backdrop-blur-md border border-white/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7),inset_0_-1px_0_0_rgba(255,255,255,0.2)]"
+              aria-label="More options"
+              data-testid="settings-button"
+            >
+              <Ellipsis className="size-4 text-oui-dark-shade" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" sideOffset={4} className="min-w-[200px] p-2 space-y-1">
+            <DropdownMenuItem onClick={onSettings} className="py-2">
+              <Pencil className="size-4" />
+              <span>Rename</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onSettings} className="py-2">
+              <FileText className="size-4" />
+              <span>Generate report</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onSettings} className="py-2">
+              <Settings className="size-4" />
+              <span>Settings</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onSettings} className="py-2 text-red-600 focus:text-red-600">
+              <Archive className="size-4" />
+              <span>Archive</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <button
           onClick={onMenu}
-          className="flex items-center justify-center rounded-lg bg-white p-2 transition-colors hover:bg-slate-50"
+          className="flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-white/60 bg-white/40 backdrop-blur-md border border-white/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7),inset_0_-1px_0_0_rgba(255,255,255,0.2)]"
           aria-label="Menu"
         >
-          <Menu className="size-4 text-oui-dark-shade" />
+          {viewListCollapsed ? (
+            <PanelRightOpen className="size-4 text-oui-dark-shade" />
+          ) : (
+            <PanelRightClose className="size-4 text-oui-dark-shade" />
+          )}
         </button>
       </div>
     </header>

@@ -27,6 +27,11 @@ export function WorkspacePage() {
   const [viewListCollapsed, setViewListCollapsed] = useState(false);
   const [activeConversationId, setActiveConversationId] = useState('');
   const [activePageId, setActivePageId] = useState('');
+  const [ollyThinking, setOllyThinking] = useState(false);
+  const [ollyThinkingPhase, setOllyThinkingPhase] = useState<'gathering' | 'thinking'>('gathering');
+  const [logoOverride, setLogoOverride] = useState<string | undefined>(undefined);
+  const [pendingMessage, setPendingMessage] = useState<import('@/types').ChatMessage | null>(null);
+  const [hypothesisRuledOut, setHypothesisRuledOut] = useState(false);
 
   // Redirect to home if workspace not found
   useEffect(() => {
@@ -86,6 +91,50 @@ export function WorkspacePage() {
   };
 
   const handleOpenPage = (pageId: string) => {
+    // Handle rule-out requests from chat (format: "ruleout||hypothesisName")
+    if (pageId.startsWith('ruleout||')) {
+      const hypothesisName = pageId.split('||')[1];
+      const page = workspace.canvasPages.find(
+        (p) => p.type === 'hypothesis' && p.title.toLowerCase().includes(hypothesisName.toLowerCase())
+      );
+      if (page) {
+        // Remove the hypothesis page
+        removeCanvasPage(workspace.id, page.id);
+        if (page.id === activePageId) {
+          const remaining = workspace.canvasPages.filter((p) => p.id !== page.id);
+          setActivePageId(remaining.length > 0 ? remaining[0].id : '');
+        }
+
+        // Start the thinking flow
+        const isDbPool = hypothesisName.toLowerCase().includes('connection pool') || hypothesisName.toLowerCase().includes('db pool');
+        setHypothesisRuledOut(true);
+        setLogoOverride('/image/Logo-v3.svg');
+        setOllyThinking(true);
+        setOllyThinkingPhase('gathering');
+
+        setTimeout(() => {
+          setOllyThinkingPhase('thinking');
+        }, 4000);
+
+        setTimeout(() => {
+          setOllyThinking(false);
+          setLogoOverride('/image/Logo-v2.svg');
+
+          const responseText = isDbPool
+            ? `I've ruled out "${hypothesisName}." While connection pool utilization is elevated at 97%, the trace analysis shows the pool wait times are a downstream effect of lock contention — not the primary cause.\n\nThis narrows our focus to the Lock Contention hypothesis. The SERIALIZABLE isolation level change in v3.8.2 is the more likely root cause. I recommend investigating trace lock-trace-445-contention-01 for confirmation.`
+            : `I've ruled out "${hypothesisName}." The lock wait patterns in the traces don't fully account for the latency spike — the contention resolves within acceptable thresholds under normal concurrency.\n\nThis points us toward the DB Connection Pool Exhaustion hypothesis as the primary cause. The 3x connection multiplier from the new ORM pattern in v3.8.2 is the stronger signal. I recommend reviewing the pool saturation traces for confirmation.`;
+
+          setPendingMessage({
+              id: crypto.randomUUID(),
+              sender: 'olly',
+              text: responseText,
+              timestamp: new Date(),
+          });
+        }, 8000);
+      }
+      return;
+    }
+
     // Handle mock page requests from chat (format: "mock||type||contentKey||title")
     if (pageId.startsWith('mock||')) {
       const [, pageType, contentKey, title] = pageId.split('||');
@@ -128,11 +177,47 @@ export function WorkspacePage() {
   };
 
   const handlePageClose = (pageId: string) => {
+    const page = workspace.canvasPages.find((p) => p.id === pageId);
+    const isHypothesis = page?.type === 'hypothesis';
+
     removeCanvasPage(workspace.id, pageId);
     // If closing the active page, switch to the first remaining page
     if (pageId === activePageId) {
       const remaining = workspace.canvasPages.filter((p) => p.id !== pageId);
       setActivePageId(remaining.length > 0 ? remaining[0].id : '');
+    }
+
+    if (isHypothesis && page) {
+      // Switch logo to thinking state
+      setHypothesisRuledOut(true);
+      setLogoOverride('/image/Logo-v3.svg');
+      setOllyThinking(true);
+      setOllyThinkingPhase('gathering');
+      setChatCollapsed(false);
+
+      const hypothesisName = page.title.replace(/^Hypothesis:\s*/i, '').trim();
+      const isDbPool = hypothesisName.toLowerCase().includes('connection pool') || hypothesisName.toLowerCase().includes('db pool');
+
+      // Switch to "Thinking..." phase after 4s
+      setTimeout(() => {
+        setOllyThinkingPhase('thinking');
+      }, 4000);
+
+      setTimeout(() => {
+        setOllyThinking(false);
+        setLogoOverride('/image/Logo-v2.svg');
+
+        const responseText = isDbPool
+          ? `I've ruled out "${hypothesisName}." While connection pool utilization is elevated at 97%, the trace analysis shows the pool wait times are a downstream effect of lock contention — not the primary cause.\n\nThis narrows our focus to the Lock Contention hypothesis. The SERIALIZABLE isolation level change in v3.8.2 is the more likely root cause. I recommend investigating trace lock-trace-445-contention-01 for confirmation.`
+          : `I've ruled out "${hypothesisName}." The lock wait patterns in the traces don't fully account for the latency spike — the contention resolves within acceptable thresholds under normal concurrency.\n\nThis points us toward the DB Connection Pool Exhaustion hypothesis as the primary cause. The 3x connection multiplier from the new ORM pattern in v3.8.2 is the stronger signal. I recommend reviewing the pool saturation traces for confirmation.`;
+
+        setPendingMessage({
+            id: crypto.randomUUID(),
+            sender: 'olly',
+            text: responseText,
+            timestamp: new Date(),
+        });
+      }, 8000);
     }
   };
 
@@ -178,6 +263,7 @@ export function WorkspacePage() {
         onHomeClick={handleHomeClick}
         onOllyIconClick={handleOllyIconClick}
         isInvestigating={isInvestigating}
+        logoOverride={logoOverride}
         animate={fromHome}
       />
 
@@ -186,6 +272,7 @@ export function WorkspacePage() {
         {/* Header */}
         <WorkspaceHeader
           workspace={workspace}
+          viewListCollapsed={viewListCollapsed}
           onShare={handleShare}
           onSettings={handleSettings}
           onMenu={handleMenu}
@@ -199,6 +286,10 @@ export function WorkspacePage() {
             activeConversationId={activeConversationId}
             isCollapsed={chatCollapsed}
             animate={fromHome}
+            pendingMessage={pendingMessage}
+            onPendingMessageConsumed={() => setPendingMessage(null)}
+            ollyThinking={ollyThinking}
+            ollyThinkingPhase={ollyThinkingPhase}
             onCollapse={handleCollapse}
             onNewConversation={handleNewConversation}
             onSelectConversation={handleSelectConversation}
@@ -211,6 +302,7 @@ export function WorkspacePage() {
             activePageId={activePageId}
             onPageSelect={handlePageSelect}
             onAddMockPage={handleAddMockPage}
+            hypothesisRuledOut={hypothesisRuledOut}
           />
 
           <ViewList

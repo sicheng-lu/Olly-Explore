@@ -63,7 +63,7 @@ export function ViewList({
       <div className="flex items-center justify-center">
         <DropdownMenu>
           <DropdownMenuTrigger
-            className="flex h-[36px] w-full flex-row items-center justify-center gap-2 rounded-lg bg-white transition-colors hover:bg-slate-50 cursor-pointer"
+            className="flex h-[36px] w-full flex-row items-center justify-center gap-2 rounded-lg transition-colors cursor-pointer bg-white/40 backdrop-blur-md border border-white/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7),inset_0_-1px_0_0_rgba(255,255,255,0.2)] hover:bg-white/60"
             aria-label="Add page"
             data-testid="view-list-add-btn"
           >
@@ -91,7 +91,7 @@ export function ViewList({
 
       {/* Scrollable page entries */}
       <ScrollArea className="flex-1">
-        <div className="flex flex-col gap-3 px-[2px] py-[2px]">
+        <div className="flex flex-col gap-3 px-[2px] pt-3 pb-[2px]">
           {sorted.map((page) => {
             const isActive = page.id === activePageId;
             const Icon = pageIcon(page.type);
@@ -101,7 +101,7 @@ export function ViewList({
                 key={page.id}
                 role="button"
                 tabIndex={0}
-                className={`group relative flex h-[80px] flex-col items-center justify-center gap-1 rounded-lg bg-white cursor-pointer transition-colors hover:bg-slate-50 ${
+                className={`group relative flex h-[80px] flex-col items-center justify-center gap-2 rounded-lg cursor-pointer transition-colors bg-white/40 backdrop-blur-md border border-white/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7),inset_0_-1px_0_0_rgba(255,255,255,0.2)] hover:bg-white/60 ${
                   isActive ? 'ring-2 ring-oui-link' : ''
                 }`}
                 onClick={() => onPageClick(page.id)}
@@ -114,24 +114,33 @@ export function ViewList({
                 data-testid={`view-list-entry-${page.id}`}
                 data-active={isActive}
               >
-                {/* Close button — visible on hover */}
+                {/* Close button — visible on hover, hidden for summary */}
+                {page.type !== 'paragraph' && (
                 <button
-                  className="absolute top-1 right-1 hidden rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-oui-danger group-hover:block"
+                  className={`absolute -top-2 left-1/2 -translate-x-1/2 z-10 hidden items-center gap-0.5 whitespace-nowrap rounded-full px-2 py-1 shadow-sm group-hover:flex ${
+                    page.type === 'hypothesis'
+                      ? 'bg-red-500 text-white hover:bg-red-600'
+                      : 'bg-white text-slate-500 hover:bg-slate-50'
+                  }`}
                   onClick={(e) => {
                     e.stopPropagation();
                     onPageClose(page.id);
                   }}
-                  aria-label={`Close ${page.title}`}
+                  aria-label={`${page.type === 'hypothesis' ? 'Rule out' : 'Remove'} ${page.title}`}
                   data-testid={`view-list-close-${page.id}`}
                 >
-                  <X className="size-3" />
+                  <X className="size-3.5" />
+                  <span className="text-xs font-medium leading-none">
+                    {page.type === 'hypothesis' ? 'Rule out' : 'Remove'}
+                  </span>
                 </button>
+                )}
 
                 <Icon
                   className="size-5 text-oui-dark-shade"
                 />
                 <span
-                  className={`w-full truncate text-center text-[10px] leading-tight px-1 ${
+                  className={`w-full truncate text-center text-xs leading-tight px-1 ${
                     isActive ? 'text-oui-darkest-shade font-medium' : 'text-oui-dark-shade'
                   }`}
                 >

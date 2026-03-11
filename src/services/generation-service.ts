@@ -61,6 +61,27 @@ export const GenerationService = {
     }
   },
 
+  async generateNote(workspacePages: CanvasPage[], prompt: string): Promise<GenerationResult> {
+    const pageId = workspacePages.find((p) => p.type === 'note')?.id ?? 'note';
+    const controller = new AbortController();
+    activeGenerations.set(pageId, controller);
+
+    try {
+      await delay(2000, controller.signal);
+
+      return {
+        content: `# Investigation Note\n\n## Root Cause Analysis\n\nThe connection pool exhaustion was traced back to a misconfigured max-connections parameter in the database driver. Under sustained load, idle connections were not being recycled, leading to gradual resource starvation.\n\n## Key Findings\n\n- Connection pool limit was set to 10 but peak demand reached 45 concurrent queries\n- Idle timeout was disabled, preventing stale connection cleanup\n- Retry logic in the application layer compounded the issue by opening new connections on failure\n\n## Recommended Next Steps\n\n- Increase pool size to 50 and enable idle timeout (30s)\n- Add circuit-breaker pattern to the database client\n- Set up alerting on active connection count > 80% of pool size`,
+      };
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return { content: '', error: 'Generation was cancelled' };
+      }
+      return { content: '', error: 'Failed to generate note' };
+    } finally {
+      activeGenerations.delete(pageId);
+    }
+  },
+
   cancelGeneration(pageId: string): void {
     const controller = activeGenerations.get(pageId);
     if (controller) {

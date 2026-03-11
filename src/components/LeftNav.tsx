@@ -7,6 +7,8 @@ import {
   Info,
   Sun,
   Search,
+  PanelRightClose,
+  PanelLeftClose,
 } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useOllyState } from '@/contexts/OllyStateContext';
@@ -46,7 +48,11 @@ interface LeftNavProps {
   onWorkspaceClick: (workspaceId: string) => void;
   onHomeClick?: () => void;
   onOllyIconClick?: () => void;
+  onExpandClick?: () => void;
+  onCollapseClick?: () => void;
+  showHomeButton?: boolean;
   isInvestigating?: boolean;
+  logoOverride?: string;
   animate?: boolean;
   className?: string;
 }
@@ -56,7 +62,11 @@ export function LeftNav({
   onWorkspaceClick,
   onHomeClick,
   onOllyIconClick,
+  onExpandClick,
+  onCollapseClick,
+  showHomeButton = true,
   isInvestigating: isInvestigatingProp,
+  logoOverride,
   animate = false,
   className = '',
 }: LeftNavProps) {
@@ -66,28 +76,73 @@ export function LeftNav({
   const publicWorkspaces = listPublicWorkspaces();
   const isInvestigating = isInvestigatingProp ?? ollyState === 'investigating';
 
-  if (mode === 'collapsed') {
-    return (
-      <CollapsedNav
-        allWorkspaces={workspaces}
-        onWorkspaceClick={onWorkspaceClick}
-        onHomeClick={onHomeClick}
-        onOllyIconClick={onOllyIconClick}
-        isInvestigating={isInvestigating}
-        animate={animate}
-        className={className}
-      />
-    );
-  }
+  // Track which content to show — delayed so animation plays before swap
+  const [displayMode, setDisplayMode] = useState(mode);
+  const initialWidth = mode === 'expanded' ? 280 : (animate ? 280 : 48);
+  const [animatingWidth, setAnimatingWidth] = useState(initialWidth);
+
+  useEffect(() => {
+    if (animate) {
+      // Kick off the entry animation on next frame
+      const frame = requestAnimationFrame(() => {
+        setAnimatingWidth(mode === 'expanded' ? 280 : 48);
+      });
+      return () => cancelAnimationFrame(frame);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Start width animation immediately
+    setAnimatingWidth(mode === 'expanded' ? 280 : 48);
+
+    // Swap content partway through the animation for a smooth feel
+    const timer = setTimeout(() => {
+      setDisplayMode(mode);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [mode]);
+
+  const isExpanded = mode === 'expanded';
 
   return (
-    <ExpandedNav
-      allWorkspaces={workspaces}
-      isInvestigating={isInvestigating}
-      onWorkspaceClick={onWorkspaceClick}
-      animate={animate}
-      className={className}
-    />
+    <div
+      className={`group relative z-10 flex h-full shrink-0 transition-[width] duration-300 ease-in-out ${className}`}
+      style={{ width: animatingWidth }}
+    >
+      {/* Floating collapse button — right edge, visible on hover (expanded only) */}
+      {isExpanded && onCollapseClick && (
+        <button
+          onClick={onCollapseClick}
+          className="absolute right-0 top-9 z-20 flex size-6 translate-x-1/2 items-center justify-center rounded bg-white shadow opacity-0 transition-opacity group-hover:opacity-100"
+          aria-label="Collapse navigation"
+        >
+          <PanelLeftClose className="size-3.5 text-oui-dark-shade" />
+        </button>
+      )}
+
+      {displayMode === 'collapsed' ? (
+        <CollapsedNav
+          allWorkspaces={workspaces}
+          onWorkspaceClick={onWorkspaceClick}
+          onHomeClick={onHomeClick}
+          onOllyIconClick={onOllyIconClick}
+          onExpandClick={onExpandClick}
+          showHomeButton={showHomeButton}
+          isInvestigating={isInvestigating}
+          logoOverride={logoOverride}
+          animate={false}
+          className=""
+        />
+      ) : (
+        <ExpandedNav
+          allWorkspaces={workspaces}
+          isInvestigating={isInvestigating}
+          onWorkspaceClick={onWorkspaceClick}
+          animate={false}
+          className=""
+        />
+      )}
+    </div>
   );
 }
 
@@ -106,16 +161,8 @@ function ExpandedNav({
   animate: boolean;
   className: string;
 }) {
-  const [expanded, setExpanded] = useState(!animate);
   const [filter, setFilter] = useState<'public' | 'my'>('public');
   const [search, setSearch] = useState('');
-
-  useEffect(() => {
-    if (animate) {
-      const frame = requestAnimationFrame(() => setExpanded(true));
-      return () => cancelAnimationFrame(frame);
-    }
-  }, [animate]);
 
   const filteredWorkspaces = useMemo(() => {
     const byPrivacy = allWorkspaces.filter((ws) =>
@@ -127,16 +174,15 @@ function ExpandedNav({
   }, [allWorkspaces, filter, search]);
 
   return (
-    <nav
-      data-testid="left-nav"
-      data-mode="expanded"
-      className={`relative z-10 flex h-full shrink-0 flex-col items-center justify-between overflow-hidden bg-white/50 pt-6 transition-[width] duration-300 ease-in-out ${className}`}
-      style={{ width: expanded ? 280 : 48 }}
-    >
-      <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-4 px-4">
-        <div className="flex size-12 items-center justify-center shrink-0">
-          <img src="/image/workspace.svg" alt="Workspaces" className="size-4" />
-        </div>
+      <nav
+        data-testid="left-nav"
+        data-mode="expanded"
+        className={`flex h-full w-full flex-col items-center justify-between overflow-hidden bg-white/50 pt-6 ${className}`}
+      >
+        <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-4 px-4">
+          <div className="flex size-12 items-center justify-center shrink-0">
+            <img src="/image/workspace.svg" alt="Workspaces" className="size-4" />
+          </div>
 
         {/* Search bar */}
         <div className="flex h-8 w-full items-center gap-2 rounded-lg bg-white px-3 shrink-0">
@@ -223,7 +269,10 @@ function CollapsedNav({
   onWorkspaceClick,
   onHomeClick,
   onOllyIconClick,
+  onExpandClick,
+  showHomeButton = true,
   isInvestigating,
+  logoOverride,
   animate,
   className,
 }: {
@@ -231,23 +280,18 @@ function CollapsedNav({
   onWorkspaceClick: (id: string) => void;
   onHomeClick?: () => void;
   onOllyIconClick?: () => void;
+  onExpandClick?: () => void;
+  showHomeButton?: boolean;
   isInvestigating: boolean;
+  logoOverride?: string;
   animate: boolean;
   className: string;
 }) {
-  const [collapsed, setCollapsed] = useState(!animate);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [filter, setFilter] = useState<'public' | 'my'>('public');
   const [search, setSearch] = useState('');
   const popoverRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (animate) {
-      const frame = requestAnimationFrame(() => setCollapsed(true));
-      return () => cancelAnimationFrame(frame);
-    }
-  }, [animate]);
 
   // Close popover on outside click
   useEffect(() => {
@@ -277,8 +321,7 @@ function CollapsedNav({
     <nav
       data-testid="left-nav"
       data-mode="collapsed"
-      className={`relative z-10 flex h-full shrink-0 flex-col items-center justify-between overflow-hidden bg-white/50 transition-[width] duration-300 ease-in-out ${className}`}
-      style={{ width: collapsed ? 48 : 280 }}
+      className={`flex h-full w-full flex-col items-center justify-between overflow-hidden bg-white/50 ${className}`}
     >
       {/* Top: Workspace selector + Olly logo */}
       <div className="flex flex-col items-center gap-6 px-3 py-6">
@@ -374,26 +417,38 @@ function CollapsedNav({
           document.body
         )}
 
-        <button
-          onClick={onOllyIconClick}
-          className="flex size-6 items-center p-[3px]"
-          aria-label="Olly"
-        >
-          <OllyIcon size="small" logoSrc={isInvestigating ? '/image/Logo-v2.svg' : undefined} />
-        </button>
+        {onExpandClick ? (
+          <button
+            onClick={onExpandClick}
+            className="flex size-6 items-center justify-center"
+            aria-label="Expand navigation"
+          >
+            <PanelRightClose className="size-4 text-oui-dark-shade" />
+          </button>
+        ) : (
+          <button
+            onClick={onOllyIconClick}
+            className="flex size-6 items-center p-[3px]"
+            aria-label="Olly"
+          >
+            <OllyIcon size="small" logoSrc={logoOverride ?? (isInvestigating ? '/image/Logo-v2.svg' : undefined)} />
+          </button>
+        )}
       </div>
 
       {/* Bottom: utility icons + avatar */}
       <div className="flex flex-col items-center gap-4 px-3 py-6">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={onHomeClick}
-          aria-label="Home"
-          className="size-6"
-        >
-          <Home className="size-4 text-oui-dark-shade" />
-        </Button>
+        {showHomeButton && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onHomeClick}
+            aria-label="Home"
+            className="size-6"
+          >
+            <Home className="size-4 text-oui-dark-shade" />
+          </Button>
+        )}
         <Button variant="ghost" size="icon-sm" aria-label="Theme" className="size-6">
           <Sun className="size-4 text-oui-dark-shade" />
         </Button>

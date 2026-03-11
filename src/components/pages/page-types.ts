@@ -5,6 +5,7 @@ export const PAGE_TYPES: Record<string, PageTypeConfig> = {
   dashboard: { id: 'dashboard', label: 'Dashboard', autoGenerates: true },
   logs: { id: 'logs', label: 'Logs', autoGenerates: false },
   traces: { id: 'traces', label: 'Traces', autoGenerates: false },
+  note: { id: 'note', label: 'Note', autoGenerates: false },
 } as const;
 
 export type PageTypeId = keyof typeof PAGE_TYPES;

@@ -10,6 +10,8 @@ import { LogsPageEmpty } from './LogsPageEmpty';
 import { LogsPagePrefill } from './LogsPagePrefill';
 import { TracesPageEmpty } from './TracesPageEmpty';
 import { TracesPagePrefill } from './TracesPagePrefill';
+import { NotePageEmpty } from './NotePageEmpty';
+import { NotePagePrefill } from './NotePagePrefill';
 
 export interface PageTypeRouterProps {
   page: CanvasPage;
@@ -78,6 +80,17 @@ export function PageTypeRouter({
         <TracesPagePrefill traceData={investigationData.traceData} />
       ) : (
         <TracesPageEmpty />
+      );
+
+    case 'note':
+      return state === 'prefill' && investigationData?.noteContent ? (
+        <NotePagePrefill noteContent={investigationData.noteContent} />
+      ) : (
+        <NotePageEmpty
+          workspacePages={workspacePages}
+          onGenerationComplete={(content) => onGenerationComplete?.(page.id, content)}
+          onGenerationError={(error) => onGenerationError?.(page.id, error)}
+        />
       );
 
     default:

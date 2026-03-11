@@ -111,6 +111,7 @@ export interface InvestigationData {
   dashboardMetrics?: DashboardMetrics;
   logEntries?: LogEntry[];
   traceData?: TraceData[];
+  noteContent?: string;
 }
 
 export interface PageTypeConfig {
