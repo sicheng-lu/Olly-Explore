@@ -15,6 +15,7 @@ import {
   AtSign,
   SquareSlash,
   Minimize2,
+  Sparkles,
 } from 'lucide-react';
 import { LeftNav } from '@/components/LeftNav';
 import { OllyIcon } from '@/components/OllyIcon';
@@ -28,71 +29,79 @@ import type { FeedItem } from '@/types';
 /* ── Mock data ── */
 
 interface FeedItemExtended extends FeedItem {
-  domain?: string;
   sources?: string[];
 }
 
 const MOCK_FEED_ITEMS: FeedItemExtended[] = [
   {
     id: '1',
-    type: 'event',
+    type: 'insight',
+    domain: 'observability',
     title: 'Cost anomaly: Lambda invocations up 40% in last hour',
     description: '',
-    domain: 'otel-domain',
     sources: ['os219'],
     timestamp: new Date(Date.now() - 1000 * 60 * 2),
   },
   {
     id: '2',
-    type: 'insight',
+    type: 'alert',
+    domain: 'observability',
     title: 'SMS Service timeout errors spiking - upstream Twilio degradation detected',
     description: '',
-    domain: 'os-domain',
     sources: ['dd76-x5', 'os233'],
     timestamp: new Date(Date.now() - 1000 * 60 * 5),
   },
   {
     id: '3',
     type: 'event',
+    domain: 'observability',
     title: 'Deployment completed for OrderService v2.4.1 - all health checks passing',
     description: '',
-    domain: 'otel-domain',
     sources: [],
     timestamp: new Date(Date.now() - 1000 * 60 * 10),
   },
   {
+    id: 'search-1',
+    type: 'insight',
+    domain: 'search',
+    title: 'Poor CTR detected on "wireless headphones" query — UBI click-through rate dropped from 12.4% to 3.1% over 7 days',
+    description: '',
+    sources: ['ubi-analytics'],
+    timestamp: new Date(Date.now() - 1000 * 60 * 15),
+  },
+  {
     id: '4',
     type: 'insight',
+    domain: 'observability',
     title: 'Payment Service error rate correlates with DB connection pool saturation',
     description: '',
-    domain: 'otel-domain',
     sources: ['os219'],
     timestamp: new Date(Date.now() - 1000 * 60 * 123),
   },
   {
     id: '5',
-    type: 'scaling',
+    type: 'action',
+    domain: 'observability',
     title: 'Auto-scaling triggered for Catalog service - 3 new instances',
     description: '',
-    domain: 'test-domain',
     sources: ['os688a'],
     timestamp: new Date(Date.now() - 1000 * 60 * 144),
   },
   {
     id: '6',
     type: 'event',
+    domain: 'observability',
     title: 'Kubernetes pod restart detected for auth-proxy in us-east-1',
     description: '',
-    domain: 'otel-domain',
     sources: ['os219'],
     timestamp: new Date(Date.now() - 1000 * 60 * 180),
   },
   {
     id: '7',
     type: 'insight',
+    domain: 'observability',
     title: 'Memory leak pattern detected in NotificationWorker - steady 2% growth per hour',
     description: '',
-    domain: 'os-domain',
     sources: ['dd76-x5'],
     timestamp: new Date(Date.now() - 1000 * 60 * 200),
   },
@@ -101,43 +110,51 @@ const MOCK_FEED_ITEMS: FeedItemExtended[] = [
     type: 'event',
     title: 'SSL certificate renewed for api.prod.internal - expires in 90 days',
     description: '',
-    domain: 'test-domain',
     sources: [],
     timestamp: new Date(Date.now() - 1000 * 60 * 240),
   },
   {
+    id: 'search-2',
+    type: 'action',
+    domain: 'search',
+    title: 'Agent auto-tuned synonym ring for "laptop" queries — added "notebook computer", "portable PC" — relevance score improved 18%',
+    description: '',
+    sources: ['search-tuning'],
+    timestamp: new Date(Date.now() - 1000 * 60 * 260),
+  },
+  {
     id: '9',
     type: 'insight',
+    domain: 'observability',
     title: 'Cache hit ratio dropped below 70% on Redis cluster-3 - possible key eviction storm',
     description: '',
-    domain: 'otel-domain',
     sources: ['os233', 'os688a'],
     timestamp: new Date(Date.now() - 1000 * 60 * 290),
   },
   {
     id: '10',
-    type: 'scaling',
+    type: 'action',
+    domain: 'observability',
     title: 'Scale-down event for SearchIndexer - 2 instances terminated',
     description: '',
-    domain: 'os-domain',
     sources: ['os219'],
     timestamp: new Date(Date.now() - 1000 * 60 * 320),
   },
   {
     id: '11',
     type: 'event',
+    domain: 'observability',
     title: 'Database failover completed for orders-db-primary to replica-2',
     description: '',
-    domain: 'otel-domain',
     sources: ['dd76-x5'],
     timestamp: new Date(Date.now() - 1000 * 60 * 360),
   },
   {
     id: '12',
-    type: 'insight',
+    type: 'alert',
+    domain: 'observability',
     title: 'Latency p99 for GraphQL gateway exceeds 800ms - correlated with upstream inventory-svc',
     description: '',
-    domain: 'otel-domain',
     sources: ['os219', 'os233'],
     timestamp: new Date(Date.now() - 1000 * 60 * 400),
   },
@@ -146,115 +163,132 @@ const MOCK_FEED_ITEMS: FeedItemExtended[] = [
     type: 'event',
     title: 'Config change pushed to feature-flags service - 12 flags updated',
     description: '',
-    domain: 'test-domain',
     sources: [],
     timestamp: new Date(Date.now() - 1000 * 60 * 450),
   },
   {
+    id: 'search-3',
+    type: 'action',
+    domain: 'search',
+    title: 'Zero-result rate for "usb-c hub" queries reduced from 34% to 2% — agent added field mappings for product_type aliases',
+    description: '',
+    sources: ['search-tuning'],
+    timestamp: new Date(Date.now() - 1000 * 60 * 480),
+  },
+  {
+    id: 'search-4',
+    type: 'action',
+    domain: 'search',
+    title: 'Agent rebalanced index shards on products-v3 — query latency p99 improved from 420ms to 180ms',
+    description: '',
+    sources: ['index-mgmt'],
+    timestamp: new Date(Date.now() - 1000 * 60 * 520),
+  },
+  {
     id: '14',
     type: 'insight',
+    domain: 'observability',
     title: 'Disk I/O saturation on logging-node-7 - write queue depth at 94%',
     description: '',
-    domain: 'os-domain',
     sources: ['os688a'],
     timestamp: new Date(Date.now() - 1000 * 60 * 500),
   },
   {
     id: '15',
     type: 'event',
+    domain: 'observability',
     title: 'Canary deployment started for CheckoutService v3.1.0 - 5% traffic routed',
     description: '',
-    domain: 'otel-domain',
     sources: ['os219'],
     timestamp: new Date(Date.now() - 1000 * 60 * 540),
   },
   {
     id: '16',
-    type: 'scaling',
+    type: 'action',
+    domain: 'observability',
     title: 'Spot instance reclaimed for batch-processor-pool - replacement provisioning',
     description: '',
-    domain: 'test-domain',
     sources: ['dd76-x5'],
     timestamp: new Date(Date.now() - 1000 * 60 * 600),
   },
   {
     id: '17',
-    type: 'insight',
+    type: 'alert',
+    domain: 'observability',
     title: 'DNS resolution failures spiking for partner-api.external.io - 15% error rate',
     description: '',
-    domain: 'otel-domain',
     sources: ['os233'],
     timestamp: new Date(Date.now() - 1000 * 60 * 660),
   },
   {
     id: '18',
     type: 'event',
+    domain: 'observability',
     title: 'Scheduled maintenance window opened for RDS cluster aurora-prod-1',
     description: '',
-    domain: 'os-domain',
     sources: [],
     timestamp: new Date(Date.now() - 1000 * 60 * 720),
   },
   {
     id: '19',
     type: 'insight',
+    domain: 'observability',
     title: 'Thread pool exhaustion risk on EmailDispatcher - active threads at 92% capacity',
     description: '',
-    domain: 'otel-domain',
     sources: ['os219', 'os688a'],
     timestamp: new Date(Date.now() - 1000 * 60 * 780),
   },
   {
     id: '20',
     type: 'event',
+    domain: 'security',
     title: 'WAF rule triggered - blocked 340 requests matching SQL injection pattern',
     description: '',
-    domain: 'test-domain',
     sources: ['dd76-x5'],
     timestamp: new Date(Date.now() - 1000 * 60 * 840),
   },
   {
     id: '21',
-    type: 'scaling',
+    type: 'action',
+    domain: 'observability',
     title: 'Horizontal pod autoscaler activated for recommendation-engine - target CPU 78%',
     description: '',
-    domain: 'otel-domain',
     sources: ['os233'],
     timestamp: new Date(Date.now() - 1000 * 60 * 900),
   },
   {
     id: '22',
-    type: 'event',
+    type: 'alert',
+    domain: 'observability',
     title: 'Circuit breaker opened on InventoryService → WarehouseAPI dependency',
     description: '',
-    domain: 'os-domain',
     sources: ['os219'],
     timestamp: new Date(Date.now() - 1000 * 60 * 960),
   },
   {
     id: '23',
     type: 'insight',
+    domain: 'observability',
     title: 'Garbage collection pause times increasing on JVM service analytics-aggregator',
     description: '',
-    domain: 'otel-domain',
     sources: ['dd76-x5', 'os688a'],
     timestamp: new Date(Date.now() - 1000 * 60 * 1020),
   },
   {
     id: '24',
     type: 'event',
+    domain: 'observability',
     title: 'Blue-green swap completed for UserProfileService - green now active',
     description: '',
-    domain: 'test-domain',
     sources: ['os219'],
     timestamp: new Date(Date.now() - 1000 * 60 * 1080),
   },
   {
     id: '25',
     type: 'insight',
+    domain: 'observability',
     title: 'Network throughput anomaly on VPC peering link vpc-0a3f → vpc-7b2e',
     description: '',
-    domain: 'otel-domain',
     sources: ['os233', 'dd76-x5'],
     timestamp: new Date(Date.now() - 1000 * 60 * 1140),
   },
@@ -295,35 +329,59 @@ function getFeedDotColor(type: string): string {
   switch (type) {
     case 'insight': return 'bg-amber-400';
     case 'event': return 'bg-emerald-400';
-    case 'scaling': return 'bg-blue-400';
+    case 'action': return 'bg-violet-500';
+    case 'alert': return 'bg-red-500';
     default: return 'bg-slate-400';
   }
 }
 
 /* ── Feed row component ── */
 
-function FeedRow({ item }: { item: FeedItemExtended }) {
+const DOMAIN_LABELS: Record<string, { label: string; color: string }> = {
+  observability: { label: 'Observability', color: 'bg-sky-100 text-sky-700' },
+  search: { label: 'Search', color: 'bg-violet-100 text-violet-700' },
+  security: { label: 'Security', color: 'bg-amber-100 text-amber-700' },
+};
+
+function FeedRow({ item, onClick }: { item: FeedItemExtended; onClick?: () => void }) {
+  const domainInfo = item.domain ? DOMAIN_LABELS[item.domain] : null;
   return (
-    <div className="group relative flex items-center gap-3 w-full rounded-lg px-3 py-2 transition-colors hover:bg-white/60 cursor-pointer overflow-visible">
+    <div onClick={onClick} className="group relative flex items-center gap-3 w-full rounded-lg px-3 py-2 transition-colors hover:bg-white/60 cursor-pointer overflow-visible">
       {/* Floating "More actions" button — visible on hover */}
       <button className="absolute right-2 -top-3 z-10 flex items-center gap-1 rounded-lg bg-white px-3 py-1 text-xs text-slate-600 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-50">
         More actions
         <ChevronDown className="size-3" />
       </button>
 
-      {/* Status dot */}
+      {/* Status dot + auto indicator */}
       <div className="flex size-4 shrink-0 items-center justify-center">
-        <div className={`size-2 rounded-full ${getFeedDotColor(item.type)}`} />
+        {item.type === 'action' ? (
+          <div className="relative flex items-center justify-center">
+            <div className={`size-2 rounded-full ${getFeedDotColor(item.type)}`} />
+            <Sparkles className="absolute -top-1.5 -right-1.5 size-2.5 text-violet-500" />
+          </div>
+        ) : (
+          <div className={`size-2 rounded-full ${getFeedDotColor(item.type)}`} />
+        )}
       </div>
 
       {/* Title + metadata */}
       <div className="flex-1 min-w-0 space-y-1">
         <div className="text-sm text-black truncate">{item.title}</div>
         <div className="flex items-center gap-2 text-xs text-slate-500">
-          {item.domain && <span>{item.domain}</span>}
+          {domainInfo && (
+            <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${domainInfo.color}`}>
+              {domainInfo.label}
+            </span>
+          )}
+          {item.type === 'action' && (
+            <span className="rounded px-1.5 py-0.5 text-[10px] font-medium bg-violet-50 text-violet-600">
+              Auto
+            </span>
+          )}
           {item.sources?.map((src, i) => (
             <span key={i} className="flex items-center gap-2">
-              <span className="h-3 w-px bg-slate-300" />
+              {(domainInfo || item.type === 'action' || i > 0) && <span className="h-3 w-px bg-slate-300" />}
               <span>{src}</span>
             </span>
           ))}
@@ -342,7 +400,7 @@ function FeedRow({ item }: { item: FeedItemExtended }) {
 
 /* ── Feed list ── */
 
-function FeedList({ items, isInvestigating = false, insightsReady = true, onStartWorkspace }: { items: FeedItemExtended[]; isInvestigating?: boolean; insightsReady?: boolean; onStartWorkspace?: () => void }) {
+function FeedList({ items, isInvestigating = false, insightsReady = true, onStartWorkspace, onStartSearchWorkspace }: { items: FeedItemExtended[]; isInvestigating?: boolean; insightsReady?: boolean; onStartWorkspace?: () => void; onStartSearchWorkspace?: () => void }) {
   const [chartsExpanded, setChartsExpanded] = useState(false);
   return (
     <div className="h-full w-full overflow-y-auto scrollbar-none">
@@ -523,7 +581,7 @@ function FeedList({ items, isInvestigating = false, insightsReady = true, onStar
         )}
 
         {items.map((item) => (
-          <FeedRow key={item.id} item={item} />
+          <FeedRow key={item.id} item={item} onClick={item.id === 'search-1' ? onStartSearchWorkspace : undefined} />
         ))}
       </div>
     </div>
@@ -1280,6 +1338,55 @@ export function HomePage({ investigatingOverride = false }: { investigatingOverr
     navigate(`/workspace/${workspace.id}`, { state: { fromHome: true, investigating: true } });
   };
 
+  const handleStartSearchWorkspace = () => {
+    const workspace = createWorkspace('Search CTR Investigation — "wireless headphones"');
+    workspace.icon = '🔍';
+    workspace.dataSources = [{ id: crypto.randomUUID(), name: 'Search Analytics', type: 'search' }];
+
+    const presetPages: import('@/types').CanvasPage[] = [
+      {
+        id: crypto.randomUUID(),
+        type: 'paragraph',
+        title: 'Summary',
+        order: 0,
+        addedBy: 'olly',
+        addedAt: new Date(),
+        content: `# Search CTR Investigation — "wireless headphones"\n\nUBI analytics detected a significant click-through rate drop on the query "wireless headphones" — from 12.4% to 3.1% over the past 7 days, affecting ~18,000 daily searches.\n\n> 🔍 The agent autonomously analyzed UBI event data, generated hypotheses, tested query modifications against evaluation sets, and deployed an improved query configuration.\n\n[search-tags:ecommerce-prod|UBI Analytics|CTR Drop 75%|~18K daily searches]\n\n[search-ctr-chart]\n\n---\n\n## Impact\n\n- Click-through rate dropped from 12.4% → 3.1% (75% decline)\n- ~18,000 daily searches affected — "wireless headphones" is a top-20 query\n- Conversion rate on this query fell from 4.2% to 0.8%\n- 💰 Estimated revenue impact: ~$12K/day in lost conversions\n\n[bar:3:100:bg-red-500:Current CTR (3.1%)]\n[bar:12:100:bg-emerald-500:Baseline CTR (12.4%)]\n\n---\n\n## What the Agent Investigated\n\n- ✅ Analyzed 7-day UBI click stream for "wireless headphones" — 126,000 search events\n- ✅ Identified result set shift after index mapping change on Mar 5 — product_category field analyzer was modified\n- ✅ Top-10 results now dominated by accessories (cases, cables) instead of actual headphones\n- ✅ Compared current BM25 scoring with pre-change baseline — relevance drift confirmed\n- ✅ Tested 4 query reformulations against offline evaluation set (1,200 judged queries)\n- ✅ Best candidate: boosted product_name match + category filter reweight — CTR predicted at 14.1%\n\n---\n\n## Evaluation Results\n\n[search-comparison-table]\n\n---\n\n## Hypotheses\n\n- 🔴 Analyzer Change Impact — The Mar 5 mapping update changed the product_category analyzer from keyword to standard, causing category tokens to fragment and BM25 to over-score accessories [view:Hypothesis: Analyzer Change Impact]\n- 🟢 Query Boost Fix (Deployed) — Boosting product_name^3 with a category reweight function restored headphone products to top positions — validated against 1,200 judged queries with NDCG@10 improvement from 0.34 to 0.78 [view:Hypothesis: Query Boost Fix]\n\n---\n\n## Actions Taken\n\n- Agent deployed query boost configuration to ecommerce-prod search pipeline\n- A/B test running: 50% traffic on new config, 50% on baseline\n- Early results (2 hours): CTR at 13.8% on treatment group vs 3.1% on control\n- Full evaluation scheduled for 24-hour mark`,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'paragraph',
+        title: 'Hypothesis: Analyzer Change Impact',
+        order: 1,
+        addedBy: 'olly',
+        addedAt: new Date(),
+        content: `# Hypothesis: Analyzer Change Impact\n\n> The index mapping change on Mar 5 modified the product_category field analyzer from "keyword" to "standard", causing category values like "Wireless Headphones" to be tokenized into ["wireless", "headphones"]. This made BM25 over-score accessories that mention "wireless" in their category.\n\n[bar:75:100:bg-red-500:Results containing accessories (post-change)]\n[bar:15:100:bg-emerald-500:Results containing accessories (pre-change)]\n\n---\n\n## Supporting Evidence\n\n- The mapping change was deployed Mar 5 at 14:22 UTC — CTR decline began within 2 hours\n- Before the change, "Wireless Headphones" was stored as a single keyword token — exact match only\n- After the change, "wireless" and "headphones" became separate tokens, matching any product with either term in its category\n- Accessories like "wireless charging cable" and "headphone case" now score equally to actual wireless headphones\n- Top-10 result overlap between pre and post change: only 3 of 10 products remain the same\n\n---\n\n## Validation\n\n- Reverted the analyzer on a shadow index and re-ran the query — original result ranking restored\n- NDCG@10 on shadow index: 0.76 (matching pre-change baseline)\n- Confirmed root cause: analyzer change is the primary driver of relevance drift`,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'paragraph',
+        title: 'Hypothesis: Query Boost Fix',
+        order: 2,
+        addedBy: 'olly',
+        addedAt: new Date(),
+        content: `# Hypothesis: Query Boost Fix (Deployed)\n\n> Rather than reverting the analyzer (which other queries depend on), the agent tested a targeted query-time fix: boosting product_name matches and adding a category reweight function to prefer exact category matches.\n\n[bar:78:100:bg-emerald-500:NDCG@10 — With Boost Fix (0.78)]\n[bar:34:100:bg-red-500:NDCG@10 — Current Production (0.34)]\n[bar:76:100:bg-blue-500:NDCG@10 — Pre-change Baseline (0.76)]\n\n---\n\n## Query Modifications Tested\n\n- Variant A: product_name^2 boost — NDCG@10: 0.58 (partial improvement)\n- Variant B: product_name^3 boost — NDCG@10: 0.71 (good but accessories still leak in)\n- Variant C: product_name^3 + category exact match reweight — NDCG@10: 0.78 ✅ (best)\n- Variant D: function_score with category decay — NDCG@10: 0.72 (over-penalizes related products)\n\n---\n\n## Evaluation Against Query Sets\n\n- Tested against 1,200 human-judged query-document pairs\n- Variant C outperformed all others across NDCG@10, Precision@5, and MRR\n- No regression detected on related queries ("bluetooth headphones", "noise cancelling headphones", "earbuds")\n- Variant C deployed to production search pipeline with A/B test wrapper\n\n---\n\n## Current A/B Test Status\n\n- Treatment (Variant C): CTR 13.8%, Conversion 4.0%\n- Control (current prod): CTR 3.1%, Conversion 0.8%\n- Statistical significance: p < 0.001 after 2 hours\n- Full 24-hour evaluation in progress`,
+      },
+    ];
+
+    presetPages.forEach((page) => addCanvasPage(workspace.id, page));
+
+    const ollyWelcomeMessage: import('@/types').ChatMessage = {
+      id: crypto.randomUUID(),
+      sender: 'olly',
+      text: `I've set up this workspace to walk through the search CTR investigation on "wireless headphones". Here's the summary:\n\n• UBI data showed CTR dropped from 12.4% to 3.1% over 7 days\n• Root cause: a Mar 5 index mapping change altered the product_category analyzer, causing relevance drift\n• I tested 4 query reformulations against 1,200 judged queries\n• Best fix: product_name^3 boost + category reweight — NDCG@10 improved from 0.34 to 0.78\n• Fix is deployed with an A/B test — early results show CTR at 13.8% on treatment\n\nThe Summary page has the full analysis with UBI charts and evaluation results. The two hypothesis pages detail the root cause and the fix.\n\nLet me know if you'd like to explore the query variants, see the raw UBI data, or adjust the boost configuration.`,
+      timestamp: new Date(),
+    };
+
+    addConversation(workspace.id, 'Search CTR Investigation', [ollyWelcomeMessage]);
+
+    navigate(`/workspace/${workspace.id}`, { state: { fromHome: true } });
+  };
+
   const overlayGradient = isInvestigating
     ? 'linear-gradient(161deg, rgba(255,255,255,0.3) 5%, rgba(222,201,255,0.3) 27%, rgba(255,255,255,0.3) 52%, rgba(229,229,229,0.3) 83%)'
     : 'linear-gradient(161deg, rgba(255,255,255,0.3) 5%, rgba(204,230,255,0.3) 27%, rgba(255,255,255,0.3) 52%, rgba(229,229,229,0.3) 83%)';
@@ -1364,7 +1471,7 @@ export function HomePage({ investigatingOverride = false }: { investigatingOverr
             {/* Content area based on active view */}
             <div className="w-full flex-1 overflow-hidden mb-10">
               {activeView === 'feed' && (
-                <FeedList items={MOCK_FEED_ITEMS} isInvestigating={isInvestigating} insightsReady={insightsReady} onStartWorkspace={handleStartInvestigationWorkspace} />
+                <FeedList items={MOCK_FEED_ITEMS} isInvestigating={isInvestigating} insightsReady={insightsReady} onStartWorkspace={handleStartInvestigationWorkspace} onStartSearchWorkspace={handleStartSearchWorkspace} />
               )}
               {activeView === 'applicationMap' && <ApplicationMapView isInvestigating={isInvestigating} />}
               {activeView === 'service' && <ServiceView isInvestigating={isInvestigating} />}
