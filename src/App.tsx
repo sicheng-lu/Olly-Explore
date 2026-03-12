@@ -3,6 +3,7 @@ import { OllyStateProvider } from '@/contexts/OllyStateContext';
 import { WorkspaceProvider } from '@/contexts/WorkspaceContext';
 import { HomePage } from '@/pages/HomePage';
 import { WorkspacePage } from '@/pages/WorkspacePage';
+import { CentralAgentPage } from '@/pages/CentralAgentPage';
 import { Toaster } from '@/components/ui/sonner';
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/workspace/:workspaceId" element={<WorkspacePage />} />
             <Route path="/investigate" element={<HomePage investigatingOverride />} />
+            <Route path="/agent" element={<CentralAgentPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <Toaster />

@@ -15,6 +15,7 @@ import {
   AtSign,
   SquareSlash,
   Minimize2,
+  Bot,
 } from 'lucide-react';
 import { LeftNav } from '@/components/LeftNav';
 import { OllyIcon } from '@/components/OllyIcon';
@@ -1356,6 +1357,15 @@ export function HomePage({ investigatingOverride = false }: { investigatingOverr
                   aria-label="Alert configuration"
                 >
                   <ShieldAlert className="size-4 text-oui-dark-shade" />
+                </button>
+                <button
+                  onClick={() => navigate('/agent')}
+                  className="flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-2 text-xs text-slate-600 transition-colors hover:bg-slate-50"
+                  data-testid="agent-page-button"
+                  aria-label="Open Agent Interactions"
+                >
+                  <Bot className="size-4" />
+                  <span>Agent</span>
                 </button>
                 <ViewToggleGroup activeView={activeView} onViewChange={setActiveView} />
               </div>

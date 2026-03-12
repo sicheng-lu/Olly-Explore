@@ -243,3 +243,31 @@
 .svc-bar-pulse {
   animation: svcBarPulse 3s ease-in-out infinite;
 }
+
+/* ThinkingRobot animations */
+@keyframes robot-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes robot-blink {
+  0%, 90%, 100% { opacity: 1; }
+  95% { opacity: 0; }
+}
+
+@keyframes robot-antenna-pulse {
+  0%, 100% { opacity: 0.4; r: 3; }
+  50% { opacity: 1; r: 4; }
+}
+
+.animate-robot-float {
+  animation: robot-float 2s ease-in-out infinite;
+}
+
+.animate-robot-blink {
+  animation: robot-blink 3s ease-in-out infinite;
+}
+
+.animate-robot-antenna-pulse {
+  animation: robot-antenna-pulse 1.5s ease-in-out infinite;
+}
