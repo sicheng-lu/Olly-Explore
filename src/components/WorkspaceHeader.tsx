@@ -107,7 +107,7 @@ export function WorkspaceHeader({ workspace, viewListCollapsed = false, onShare,
         <Dialog>
           <DialogTrigger render={
             <button
-              className="flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-white/60 bg-white/40 backdrop-blur-md border border-white/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7),inset_0_-1px_0_0_rgba(255,255,255,0.2)]"
+              className="flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-white/60 bg-white/40"
               aria-label="Share workspace"
               data-testid="share-button"
             />
@@ -179,7 +179,7 @@ export function WorkspaceHeader({ workspace, viewListCollapsed = false, onShare,
         <DropdownMenu>
           <DropdownMenuTrigger render={
             <button
-              className="flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-white/60 bg-white/40 backdrop-blur-md border border-white/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7),inset_0_-1px_0_0_rgba(255,255,255,0.2)]"
+              className="flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-white/60 bg-white/40"
               aria-label="More options"
               data-testid="settings-button"
             />
@@ -209,7 +209,7 @@ export function WorkspaceHeader({ workspace, viewListCollapsed = false, onShare,
 
         <button
           onClick={onMenu}
-          className="flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-white/60 bg-white/40 backdrop-blur-md border border-white/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7),inset_0_-1px_0_0_rgba(255,255,255,0.2)]"
+          className="flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-white/60 bg-white/40"
           aria-label="Menu"
         >
           {viewListCollapsed ? (

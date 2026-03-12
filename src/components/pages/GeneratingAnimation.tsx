@@ -5,7 +5,7 @@ interface GeneratingAnimationProps {
 export function GeneratingAnimation({ label = 'Generating...' }: GeneratingAnimationProps) {
   return (
     <div
-      className="absolute inset-0 z-10 pointer-events-none"
+      className="w-full pointer-events-none"
       data-testid="generating-animation"
       aria-live="polite"
       aria-busy="true"

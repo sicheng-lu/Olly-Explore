@@ -24,6 +24,7 @@ export interface ChatMessage {
   sender: 'user' | 'olly';
   text: string;
   pageAction?: { type: 'open' | 'navigate'; pageId: string };
+  attachedPages?: { id: string; type: string; title: string }[];
   timestamp: Date;
 }
 

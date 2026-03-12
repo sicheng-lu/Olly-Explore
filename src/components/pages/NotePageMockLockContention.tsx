@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Code } from 'lucide-react';
+import { Copy, Play } from 'lucide-react';
+import { PageEllipsisMenu } from '@/components/PageEllipsisMenu';
 
 import { GeneratingAnimation } from './GeneratingAnimation';
 
@@ -36,11 +37,35 @@ const NOTE_CONTENT = {
         'Medium-term: Refactor the v3.8.2 ORM pattern to reuse a single connection per transaction instead of opening parallel sub-queries',
         'Monitoring: Add alerting on connection pool utilization > 80% and acquireConnection P95 > 500ms',
       ],
+      codeBlocks: {
+        1: `// datasource-config.yaml
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 50        # was 10
+      minimum-idle: 10
+      idle-timeout: 30000          # 30s idle timeout
+      connection-timeout: 5000
+      max-lifetime: 1800000`,
+        2: `// PaymentService.java — refactored processPayment()
+@Transactional
+public PaymentResult processPayment(PaymentRequest req) {
+    // Reuse single connection for all queries
+    Connection conn = dataSource.getConnection();
+    try {
+        PaymentValidation v = validatePayment(conn, req);
+        FraudCheck fc = checkFraud(conn, req);
+        return executePayment(conn, v, fc);
+    } finally {
+        conn.close(); // returns to pool
+    }
+}`,
+      },
     },
   ],
 };
 
-export function NotePageMockLockContention() {
+export function NotePageMockLockContention({ onRemove }: { onRemove?: () => void }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -53,15 +78,14 @@ export function NotePageMockLockContention() {
   }
 
   return (
-    <div className="w-full space-y-4 py-4 px-2" data-testid="note-mock-lock">
+    <div className="w-full space-y-4" data-testid="note-mock-lock">
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-base font-semibold text-slate-900 tracking-tight">
           {NOTE_CONTENT.title}
         </h2>
-        <button className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-600 hover:bg-slate-50 transition-colors shrink-0">
-          <Code className="size-3" />
-          Fix in IDE
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <PageEllipsisMenu onRemove={onRemove} />
+        </div>
       </div>
 
       <div className="rounded-md bg-slate-50 border border-slate-200 px-4 py-2.5">
@@ -79,13 +103,29 @@ export function NotePageMockLockContention() {
           )}
           {section.items && (
             <ul className="space-y-2 pl-0.5">
-              {section.items.map((item) => (
-                <li
-                  key={item}
-                  className="flex items-start gap-2.5 text-sm text-slate-600 leading-relaxed"
-                >
-                  <span className="mt-2 size-1 shrink-0 rounded-full bg-slate-300" />
-                  {item}
+              {section.items.map((item, idx) => (
+                <li key={item} className="flex flex-col gap-2">
+                  <div className="flex items-start gap-2.5 text-sm text-slate-600 leading-relaxed">
+                    <span className="mt-2 size-1 shrink-0 rounded-full bg-slate-300" />
+                    {item}
+                  </div>
+                  {section.codeBlocks?.[idx] && (
+                    <div className="relative ml-3.5 rounded-md border border-slate-200 bg-slate-50 overflow-hidden">
+                      <div className="flex items-center justify-end gap-1 px-2 py-1.5 border-b border-slate-200">
+                        <button className="flex items-center gap-1 rounded px-1.5 py-1 text-[11px] text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 transition-colors">
+                          <Copy className="size-3" />
+                          Copy
+                        </button>
+                        <button className="flex items-center gap-1 rounded px-1.5 py-1 text-[11px] text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 transition-colors">
+                          <Play className="size-3" />
+                          Run in IDE
+                        </button>
+                      </div>
+                      <pre className="px-4 py-3 text-xs text-slate-700 overflow-x-auto font-mono leading-relaxed">
+                        <code>{section.codeBlocks[idx]}</code>
+                      </pre>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

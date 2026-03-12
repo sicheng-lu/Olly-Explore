@@ -8,6 +8,7 @@ export interface WorkspaceContextType {
   listPublicWorkspaces: () => Workspace[];
   getWorkspace: (id: string) => Workspace | undefined;
   addConversation: (workspaceId: string, name: string, initialMessages?: ChatMessage[]) => void;
+  removeConversation: (workspaceId: string, conversationId: string) => void;
   addCanvasPage: (workspaceId: string, page: CanvasPage) => void;
   removeCanvasPage: (workspaceId: string, pageId: string) => void;
 }
@@ -125,13 +126,22 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>(MOCK_PUBLIC_WORKSPACES);
 
   const createWorkspace = useCallback((initialPrompt: string): Workspace => {
+    const summaryPage: CanvasPage = {
+      id: generateId(),
+      type: 'summary',
+      title: 'Overview',
+      order: 0,
+      addedBy: 'olly',
+      addedAt: new Date(),
+      generationStatus: 'idle',
+    };
     const workspace: Workspace = {
       id: generateId(),
       name: initialPrompt.slice(0, 50),
       icon: '📊',
       privacy: 'private',
       conversations: [],
-      canvasPages: [],
+      canvasPages: [summaryPage],
       dataSources: [],
       createdAt: new Date(),
     };
@@ -173,6 +183,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const removeConversation = useCallback((workspaceId: string, conversationId: string): void => {
+    setWorkspaces((prev) =>
+      prev.map((ws) =>
+        ws.id === workspaceId
+          ? { ...ws, conversations: ws.conversations.filter((c) => c.id !== conversationId) }
+          : ws
+      )
+    );
+  }, []);
+
   const addCanvasPage = useCallback((workspaceId: string, page: CanvasPage): void => {
     setWorkspaces((prev) =>
       prev.map((ws) =>
@@ -202,6 +222,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         listPublicWorkspaces,
         getWorkspace,
         addConversation,
+        removeConversation,
         addCanvasPage,
         removeCanvasPage,
       }}

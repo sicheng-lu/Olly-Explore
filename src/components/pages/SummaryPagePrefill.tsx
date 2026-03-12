@@ -6,7 +6,7 @@ export function SummaryPagePrefill({ summaryContent }: SummaryPagePrefillProps) 
   const blocks = summaryContent.split('\n\n');
 
   return (
-    <div className="w-full space-y-4 py-4 px-2" data-testid="summary-prefill">
+    <div className="w-full space-y-4" data-testid="summary-prefill">
       {blocks.map((block, i) => {
         if (block.startsWith('# ') && !block.startsWith('## '))
           return (

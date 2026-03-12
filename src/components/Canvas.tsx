@@ -1,11 +1,15 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   FileText,
   AlertTriangle,
   RotateCcw,
   Compass,
+  ChevronRight,
+  ListChevronsUpDown,
+  SquareChartGantt,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PageEllipsisMenu } from '@/components/PageEllipsisMenu';
 import { DiscoverPage } from '@/components/pages/DiscoverPage';
 import { DashboardPage } from '@/components/pages/DashboardPage';
 import { OverviewPage } from '@/components/pages/OverviewPage';
@@ -24,7 +28,9 @@ interface CanvasProps {
   activePageId: string;
   onPageSelect: (pageId: string) => void;
   onAddMockPage?: (page: CanvasPage) => void;
+  onRemovePage?: (pageId: string) => void;
   hypothesisRuledOut?: boolean;
+  navTick?: number;
 }
 
 
@@ -55,6 +61,16 @@ function ParagraphPage({
   onPageSelect?: (pageId: string) => void;
 }) {
   const blocks = content.split('\n\n');
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+
+  const toggleSection = (title: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(title)) next.delete(title);
+      else next.add(title);
+      return next;
+    });
+  };
 
   const handleView = (title: string) => {
     if (!pages || !onPageSelect) return;
@@ -62,173 +78,216 @@ function ParagraphPage({
     if (target) onPageSelect(target.id);
   };
 
-  return (
-    <div className="w-full space-y-4 py-4 px-2" data-testid="page-placeholder-paragraph">
-      {blocks.map((block, i) => {
-        // Title: # heading
-        if (block.startsWith('# ') && !block.startsWith('## '))
-          return <h2 key={i} className="text-base font-semibold text-slate-900 tracking-tight">{block.slice(2)}</h2>;
-        // Subtitle: ## heading
-        if (block.startsWith('## '))
-          return (
-            <h3 key={i} className="text-xs font-semibold uppercase tracking-wider text-slate-400 mt-6 mb-2">
-              {block.slice(3)}
-            </h3>
-          );
-        // Latency chart: [chart]
-        if (block.trim() === '[chart]')
-          return (
-            <div key={i} className="grid grid-cols-2 gap-8">
-              {/* P95 Latency chart */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-slate-500">P95 Latency — /api/v1/payments/process</span>
-                  <span className="text-xs font-semibold text-red-600">2,012ms</span>
-                </div>
-                <div className="relative h-[80px] w-full">
-                  <svg viewBox="0 0 400 80" className="w-full h-full" preserveAspectRatio="none">
-                    <line x1="0" y1="48" x2="400" y2="48" stroke="#ef4444" strokeWidth="1" strokeDasharray="4 3" opacity="0.4" />
-                    <line x1="0" y1="24" x2="400" y2="24" stroke="#e2e8f0" strokeWidth="0.5" />
-                    <line x1="0" y1="60" x2="400" y2="60" stroke="#e2e8f0" strokeWidth="0.5" />
-                    <path
-                      d="M0,65 L30,64 L60,62 L90,60 L120,58 L150,55 L180,52 L210,48 L240,42 L270,34 L300,24 L330,16 L360,10 L390,8 L400,8 L400,80 L0,80 Z"
-                      fill="url(#summaryRedGradient)"
-                    />
-                    <path
-                      d="M0,65 L30,64 L60,62 L90,60 L120,58 L150,55 L180,52 L210,48 L240,42 L270,34 L300,24 L330,16 L360,10 L390,8 L400,8"
-                      fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinejoin="round"
-                    />
-                    <circle cx="400" cy="8" r="3" fill="#ef4444" />
-                    <circle cx="400" cy="8" r="5" fill="#ef4444" opacity="0.3">
-                      <animate attributeName="r" values="5;8;5" dur="2s" repeatCount="indefinite" />
-                      <animate attributeName="opacity" values="0.3;0.1;0.3" dur="2s" repeatCount="indefinite" />
-                    </circle>
-                    <defs>
-                      <linearGradient id="summaryRedGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#ef4444" stopOpacity="0.15" />
-                        <stop offset="100%" stopColor="#ef4444" stopOpacity="0.01" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                </div>
-                <div className="flex items-center justify-between mt-1 text-[10px] text-slate-400">
-                  <span>-30m</span><span>-20m</span><span>-10m</span><span>Now</span>
-                </div>
-              </div>
-              {/* Request Breakdown chart */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs text-slate-500">Request Breakdown</span>
-                  <div className="flex items-center gap-3 text-[10px] text-slate-400">
-                    <span className="flex items-center gap-1"><span className="inline-block h-1.5 w-3 rounded-full bg-emerald-400" /> Success</span>
-                    <span className="flex items-center gap-1"><span className="inline-block h-1.5 w-3 rounded-full bg-red-400" /> Error</span>
-                    <span className="flex items-center gap-1"><span className="inline-block h-1.5 w-3 rounded-full bg-amber-300" /> Timeout</span>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2.5">
-                  {[
-                    { name: 'Payment', success: 52, error: 38, timeout: 10 },
-                    { name: 'SMS', success: 45, error: 42, timeout: 13 },
-                    { name: 'Logging', success: 78, error: 18, timeout: 4 },
-                    { name: 'Order', success: 88, error: 8, timeout: 4 },
-                  ].map((svc) => (
-                    <div key={svc.name} className="flex items-center gap-2">
-                      <span className="w-16 text-[11px] text-slate-500 text-right shrink-0">{svc.name}</span>
-                      <div className="flex-1 flex h-2 rounded-full overflow-hidden bg-slate-100">
-                        <div className="h-full bg-emerald-400 transition-all" style={{ width: `${svc.success}%` }} />
-                        <div className="h-full bg-red-400 transition-all" style={{ width: `${svc.error}%` }} />
-                        <div className="h-full bg-amber-300 transition-all" style={{ width: `${svc.timeout}%` }} />
-                      </div>
-                      <span className="w-10 text-[10px] text-red-500 font-medium shrink-0">{svc.error}% err</span>
-                    </div>
-                  ))}
-                </div>
+  // Group blocks into sections: { heading?: string, blocks: string[] }
+  const sections: { heading?: string; blocks: string[] }[] = [];
+  let current: { heading?: string; blocks: string[] } = { blocks: [] };
+
+  for (const block of blocks) {
+    if (block.startsWith('## ')) {
+      // Push previous section
+      if (current.heading || current.blocks.length > 0) sections.push(current);
+      current = { heading: block.slice(3), blocks: [] };
+    } else if (block.trim() === '---') {
+      // Dividers go between sections, push current and start fresh
+      if (current.heading || current.blocks.length > 0) sections.push(current);
+      sections.push({ blocks: ['---'] });
+      current = { blocks: [] };
+    } else {
+      current.blocks.push(block);
+    }
+  }
+  if (current.heading || current.blocks.length > 0) sections.push(current);
+
+  const renderBlock = (block: string, i: number) => {
+    // Title: # heading
+    if (block.startsWith('# ') && !block.startsWith('## '))
+      return <h2 key={i} className="text-base font-semibold text-slate-900 tracking-tight">{block.slice(2)}</h2>;
+    // Latency chart: [chart]
+    if (block.trim() === '[chart]')
+      return (
+        <div key={i} className="grid grid-cols-2 gap-8">
+          {/* P95 Latency chart */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-slate-500">P95 Latency — /api/v1/payments/process</span>
+              <span className="text-xs font-semibold text-red-600">2,012ms</span>
+            </div>
+            <div className="relative h-[80px] w-full">
+              <svg viewBox="0 0 400 80" className="w-full h-full" preserveAspectRatio="none">
+                <line x1="0" y1="48" x2="400" y2="48" stroke="#ef4444" strokeWidth="1" strokeDasharray="4 3" opacity="0.4" />
+                <line x1="0" y1="24" x2="400" y2="24" stroke="#e2e8f0" strokeWidth="0.5" />
+                <line x1="0" y1="60" x2="400" y2="60" stroke="#e2e8f0" strokeWidth="0.5" />
+                <path
+                  d="M0,65 L30,64 L60,62 L90,60 L120,58 L150,55 L180,52 L210,48 L240,42 L270,34 L300,24 L330,16 L360,10 L390,8 L400,8 L400,80 L0,80 Z"
+                  fill="url(#summaryRedGradient)"
+                />
+                <path
+                  d="M0,65 L30,64 L60,62 L90,60 L120,58 L150,55 L180,52 L210,48 L240,42 L270,34 L300,24 L330,16 L360,10 L390,8 L400,8"
+                  fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinejoin="round"
+                />
+                <circle cx="400" cy="8" r="3" fill="#ef4444" />
+                <circle cx="400" cy="8" r="5" fill="#ef4444" opacity="0.3">
+                  <animate attributeName="r" values="5;8;5" dur="2s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.3;0.1;0.3" dur="2s" repeatCount="indefinite" />
+                </circle>
+                <defs>
+                  <linearGradient id="summaryRedGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#ef4444" stopOpacity="0.15" />
+                    <stop offset="100%" stopColor="#ef4444" stopOpacity="0.01" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            <div className="flex items-center justify-between mt-1 text-[10px] text-slate-400">
+              <span>-30m</span><span>-20m</span><span>-10m</span><span>Now</span>
+            </div>
+          </div>
+          {/* Request Breakdown chart */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs text-slate-500">Request Breakdown</span>
+              <div className="flex items-center gap-3 text-[10px] text-slate-400">
+                <span className="flex items-center gap-1"><span className="inline-block h-1.5 w-3 rounded-full bg-emerald-400" /> Success</span>
+                <span className="flex items-center gap-1"><span className="inline-block h-1.5 w-3 rounded-full bg-red-400" /> Error</span>
+                <span className="flex items-center gap-1"><span className="inline-block h-1.5 w-3 rounded-full bg-amber-300" /> Timeout</span>
               </div>
             </div>
-          );
-        // Red tags: [tags:tag1|tag2|tag3]
-        if (block.startsWith('[tags:'))
-          return (
-            <div key={i} className="flex flex-wrap items-center gap-2">
-              {block.slice(6, -1).split('|').map((tag, j) => (
-                <span key={j} className="rounded-lg bg-red-700 px-2.5 py-1.5 text-xs text-white">
-                  {tag.trim()}
-                </span>
+            <div className="flex flex-col gap-2.5">
+              {[
+                { name: 'Payment', success: 52, error: 38, timeout: 10 },
+                { name: 'SMS', success: 45, error: 42, timeout: 13 },
+                { name: 'Logging', success: 78, error: 18, timeout: 4 },
+                { name: 'Order', success: 88, error: 8, timeout: 4 },
+              ].map((svc) => (
+                <div key={svc.name} className="flex items-center gap-2">
+                  <span className="w-16 text-[11px] text-slate-500 text-right shrink-0">{svc.name}</span>
+                  <div className="flex-1 flex h-2 rounded-full overflow-hidden bg-slate-100">
+                    <div className="h-full bg-emerald-400 transition-all" style={{ width: `${svc.success}%` }} />
+                    <div className="h-full bg-red-400 transition-all" style={{ width: `${svc.error}%` }} />
+                    <div className="h-full bg-amber-300 transition-all" style={{ width: `${svc.timeout}%` }} />
+                  </div>
+                  <span className="w-10 text-[10px] text-red-500 font-medium shrink-0">{svc.error}% err</span>
+                </div>
               ))}
             </div>
-          );
-        // Progress bar: [bar:value:max:color:label]
-        if (block.startsWith('[bar:')) {
-          const parts = block.slice(5, -1).split(':');
-          const val = Number(parts[0]);
-          const mx = Number(parts[1]);
-          const color = parts[2] || 'bg-blue-500';
-          const label = parts[3] || '';
-          return (
-            <div key={i} className="flex items-center gap-3">
-              {label && <span className="text-xs text-slate-500 w-44 shrink-0">{label}</span>}
-              <ProgressBar value={val} max={mx} color={color} />
-            </div>
-          );
+          </div>
+        </div>
+      );
+    // Red tags: [tags:tag1|tag2|tag3]
+    if (block.startsWith('[tags:'))
+      return (
+        <div key={i} className="flex flex-wrap items-center gap-2">
+          {block.slice(6, -1).split('|').map((tag, j) => (
+            <span key={j} className="rounded-lg bg-red-700 px-2.5 py-1.5 text-xs text-white">
+              {tag.trim()}
+            </span>
+          ))}
+        </div>
+      );
+    // Progress bar: [bar:value:max:color:label]
+    if (block.startsWith('[bar:')) {
+      const parts = block.slice(5, -1).split(':');
+      const val = Number(parts[0]);
+      const mx = Number(parts[1]);
+      const color = parts[2] || 'bg-blue-500';
+      const label = parts[3] || '';
+      return (
+        <div key={i} className="flex items-center gap-3">
+          {label && <span className="text-xs text-slate-500 w-44 shrink-0">{label}</span>}
+          <ProgressBar value={val} max={mx} color={color} />
+        </div>
+      );
+    }
+    // Stat row: [stat:label:value:status]
+    if (block.startsWith('[stat:')) {
+      const rows = block.split('\n');
+      return (
+        <div key={i} className="grid grid-cols-3 gap-2">
+          {rows.map((row, j) => {
+            const parts = row.slice(6, -1).split(':');
+            const label = parts[0];
+            const value = parts[1];
+            const status = parts[2] || 'normal';
+            const borderColor = status === 'critical' ? 'border-red-200 bg-red-50/50' : status === 'warning' ? 'border-amber-200 bg-amber-50/50' : 'border-slate-100 bg-slate-50/50';
+            const valueColor = status === 'critical' ? 'text-red-600' : status === 'warning' ? 'text-amber-600' : 'text-slate-900';
+            return (
+              <div key={j} className={`rounded-lg border px-3 py-2.5 ${borderColor}`}>
+                <span className="block text-[10px] text-slate-400 mb-0.5">{label}</span>
+                <span className={`block text-sm font-semibold ${valueColor}`}>{value}</span>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+    // Divider: ---
+    if (block.trim() === '---')
+      return <div key={i} className="h-px bg-slate-100 my-1" />;
+    // Callout: > text
+    if (block.startsWith('> '))
+      return (
+        <div key={i} className="rounded-md bg-amber-50 border border-amber-200 px-4 py-3">
+          <p className="text-xs text-amber-800 leading-relaxed">{block.slice(2)}</p>
+        </div>
+      );
+    // Bullet list
+    if (block.startsWith('- '))
+      return (
+        <ul key={i} className="space-y-2 pl-0.5">
+          {block.split('\n').map((line, j) => {
+            const viewMatch = line.match(/\[view:(.+?)\]$/);
+            const lineText = viewMatch ? line.replace(/\s*\[view:.+?\]$/, '').replace(/^- /, '') : line.replace(/^- /, '');
+            return (
+              <li key={j} className="flex items-center gap-2.5 text-sm text-slate-600 leading-relaxed">
+                <span className="mt-0 size-1 shrink-0 rounded-full bg-slate-300" />
+                <span className="flex-1">{lineText}</span>
+                {viewMatch && onPageSelect && (
+                  <button
+                    onClick={() => handleView(viewMatch[1])}
+                    className="shrink-0 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    View
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      );
+    // Default paragraph
+    return <p key={i} className="text-sm text-slate-600 leading-relaxed">{block}</p>;
+  };
+
+  return (
+    <div className="w-full space-y-4" data-testid="page-placeholder-paragraph">
+      {sections.map((section, si) => {
+        if (!section.heading) {
+          // Non-section blocks (header area or dividers)
+          return section.blocks.map((block, bi) => renderBlock(block, si * 1000 + bi));
         }
-        // Stat row: [stat:label:value:status]
-        if (block.startsWith('[stat:')) {
-          const rows = block.split('\n');
-          return (
-            <div key={i} className="grid grid-cols-3 gap-2">
-              {rows.map((row, j) => {
-                const parts = row.slice(6, -1).split(':');
-                const label = parts[0];
-                const value = parts[1];
-                const status = parts[2] || 'normal';
-                const borderColor = status === 'critical' ? 'border-red-200 bg-red-50/50' : status === 'warning' ? 'border-amber-200 bg-amber-50/50' : 'border-slate-100 bg-slate-50/50';
-                const valueColor = status === 'critical' ? 'text-red-600' : status === 'warning' ? 'text-amber-600' : 'text-slate-900';
-                return (
-                  <div key={j} className={`rounded-lg border px-3 py-2.5 ${borderColor}`}>
-                    <span className="block text-[10px] text-slate-400 mb-0.5">{label}</span>
-                    <span className={`block text-sm font-semibold ${valueColor}`}>{value}</span>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        }
-        // Divider: ---
-        if (block.trim() === '---')
-          return <div key={i} className="h-px bg-slate-100 my-1" />;
-        // Callout: > text
-        if (block.startsWith('> '))
-          return (
-            <div key={i} className="rounded-md bg-amber-50 border border-amber-200 px-4 py-3">
-              <p className="text-xs text-amber-800 leading-relaxed">{block.slice(2)}</p>
-            </div>
-          );
-        // Bullet list
-        if (block.startsWith('- '))
-          return (
-            <ul key={i} className="space-y-2 pl-0.5">
-              {block.split('\n').map((line, j) => {
-                const viewMatch = line.match(/\[view:(.+?)\]$/);
-                const lineText = viewMatch ? line.replace(/\s*\[view:.+?\]$/, '').replace(/^- /, '') : line.replace(/^- /, '');
-                return (
-                  <li key={j} className="flex items-center gap-2.5 text-sm text-slate-600 leading-relaxed">
-                    <span className="mt-0 size-1 shrink-0 rounded-full bg-slate-300" />
-                    <span className="flex-1">{lineText}</span>
-                    {viewMatch && onPageSelect && (
-                      <button
-                        onClick={() => handleView(viewMatch[1])}
-                        className="shrink-0 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50 transition-colors"
-                      >
-                        View
-                      </button>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          );
-        // Default paragraph
-        return <p key={i} className="text-sm text-slate-600 leading-relaxed">{block}</p>;
+
+        const isCollapsed = collapsedSections.has(section.heading);
+
+        return (
+          <div key={`section-${si}`}>
+            <button
+              onClick={() => toggleSection(section.heading!)}
+              className="flex items-center gap-2 w-full text-left mt-6 mb-2 group"
+            >
+              <ChevronRight
+                className={`size-3.5 text-slate-400 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
+              />
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                {section.heading}
+              </h3>
+            </button>
+            {!isCollapsed && (
+              <div className="space-y-4">
+                {section.blocks.map((block, bi) => renderBlock(block, si * 1000 + bi))}
+              </div>
+            )}
+          </div>
+        );
       })}
     </div>
   );
@@ -242,12 +301,14 @@ function PagePlaceholder({
   title,
   pages,
   onPageSelect,
+  onRemove,
 }: {
   type: string;
   content?: string;
   title?: string;
   pages?: CanvasPage[];
   onPageSelect?: (pageId: string) => void;
+  onRemove?: () => void;
 }) {
   switch (type) {
     case 'discover':
@@ -255,7 +316,7 @@ function PagePlaceholder({
     case 'traces':
       return <DiscoverPage />;
     case 'dashboard':
-      return <DashboardPage />;
+      return <DashboardPage onRemove={onRemove} />;
     case 'observability':
       return <OverviewPage />;
     case 'paragraph':
@@ -358,30 +419,33 @@ function HypothesisPage({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between shrink-0 mb-2">
-        <h2 className="text-base font-semibold text-slate-900 tracking-tight">{page.title || 'Hypothesis'}</h2>
-        {mockKey && onAddMockPage && (
-          <div className="flex items-center gap-2">
-            {confidence && (
-              <span className={`rounded-md px-2.5 py-1.5 text-xs font-medium ${confidence.textColor} ${confidence.bgColor}`}>
-                {confidence.level} confidence · {confidence.percent}%
-              </span>
-            )}
-            <button
-              onClick={handleShowLogs}
-              className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-600 hover:bg-slate-50 transition-colors"
-            >
-              <Compass className="size-3" />
-              Show logs
-            </button>
-            <button
-              onClick={handleShowTraces}
-              className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-600 hover:bg-slate-50 transition-colors"
-            >
-              <Compass className="size-3" />
-              Show traces
-            </button>
-          </div>
+      <div className="flex flex-col gap-2 shrink-0 mb-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-slate-900 tracking-tight">{page.title || 'Hypothesis'}</h2>
+          {mockKey && onAddMockPage && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleShowLogs}
+                className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                <Compass className="size-3" />
+                Show logs
+              </button>
+              <button
+                onClick={handleShowTraces}
+                className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                <Compass className="size-3" />
+                Show traces
+              </button>
+              <PageEllipsisMenu isHypothesis onRemove={() => onRemovePage?.(page.id)} />
+            </div>
+          )}
+        </div>
+        {confidence && (
+          <span className={`rounded-md px-2.5 py-1.5 text-xs font-medium w-fit ${confidence.textColor} ${confidence.bgColor}`}>
+            {confidence.level} confidence · {confidence.percent}%
+          </span>
         )}
       </div>
       <div className="flex-1 overflow-auto scrollbar-none">
@@ -393,7 +457,7 @@ function HypothesisPage({
 
 /* ── Main Canvas component ── */
 
-export function Canvas({ pages, activePageId, onPageSelect, onAddMockPage, hypothesisRuledOut = false }: CanvasProps) {
+export function Canvas({ pages, activePageId, onPageSelect, onAddMockPage, onRemovePage, hypothesisRuledOut = false, navTick = 0 }: CanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [errorPageIds, setErrorPageIds] = useState<Set<string>>(new Set());
   const fromObserverRef = useRef(false);
@@ -403,37 +467,72 @@ export function Canvas({ pages, activePageId, onPageSelect, onAddMockPage, hypot
 
   activePageIdRef.current = activePageId;
 
+  const sortedPages = [...pages].sort((a, b) => a.order - b.order);
+  const summaryPages = sortedPages.filter((p) => p.type === 'summary');
+  const nonSummaryPages = sortedPages.filter((p) => p.type !== 'summary');
+
+  const COLLAPSED_HEIGHT = 36;
+  const GAP = 12;
+  const [overviewCollapsed, setOverviewCollapsed] = useState(false);
+  const overviewScrollRef = useRef<HTMLDivElement>(null);
+  const pagesScrollRef = useRef<HTMLDivElement>(null);
+  const dwellTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const armedRef = useRef(false);
+  const lastWheelRef = useRef(0);
+  const DWELL_MS = 800;
+  const PAUSE_MS = 300;
+
   // Scroll to active page only when triggered externally (ViewList click)
+  // We use a ref-based approach to handle navigation since activePageId might not change
+  const navigateToPage = useCallback((pageId: string) => {
+    const isSummary = summaryPages.some((p) => p.id === pageId);
+
+    if (isSummary) {
+      if (overviewCollapsed) {
+        setOverviewCollapsed(false);
+      }
+      requestAnimationFrame(() => {
+        const ov = overviewScrollRef.current;
+        if (ov) ov.scrollTop = 0;
+      });
+      return;
+    }
+
+    if (!overviewCollapsed) {
+      setOverviewCollapsed(true);
+    }
+
+    // Defer scroll to after potential state change re-render
+    setTimeout(() => {
+      const scrollContainer = pagesScrollRef.current;
+      if (!scrollContainer) return;
+      const el = scrollContainer.querySelector(`[data-page-id="${pageId}"]`) as HTMLElement | null;
+      if (!el) return;
+
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      const scrollTop = scrollContainer.scrollTop + (elRect.top - containerRect.top);
+      scrollContainer.scrollTo({ top: scrollTop, behavior: 'smooth' });
+    }, 50);
+  }, [summaryPages, overviewCollapsed]);
+
+  // Wrap onPageSelect to also handle navigation
+  const handlePageSelect = useCallback((pageId: string) => {
+    onPageSelect(pageId);
+    navigateToPage(pageId);
+  }, [onPageSelect, navigateToPage]);
+
+  const navigateToPageRef = useRef(navigateToPage);
+  navigateToPageRef.current = navigateToPage;
+
+  // Also navigate when activePageId changes from external source (not observer)
   useEffect(() => {
     if (fromObserverRef.current) {
       fromObserverRef.current = false;
       return;
     }
-    if (!containerRef.current) return;
-    const el = containerRef.current.querySelector(`[data-page-id="${activePageId}"]`) as HTMLElement | null;
-    if (!el) return;
-
-    isProgrammaticScroll.current = true;
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const elRect = el.getBoundingClientRect();
-    const scrollTop = containerRef.current.scrollTop + (elRect.top - containerRect.top);
-    containerRef.current.scrollTo({ top: scrollTop, behavior: 'smooth' });
-
-    const container = containerRef.current;
-    const onScrollEnd = () => {
-      container.removeEventListener('scrollend', onScrollEnd);
-      isProgrammaticScroll.current = false;
-    };
-    container.addEventListener('scrollend', onScrollEnd);
-    const fallback = setTimeout(() => {
-      container.removeEventListener('scrollend', onScrollEnd);
-      isProgrammaticScroll.current = false;
-    }, 1200);
-    return () => {
-      clearTimeout(fallback);
-      container.removeEventListener('scrollend', onScrollEnd);
-    };
-  }, [activePageId]);
+    navigateToPageRef.current(activePageId);
+  }, [activePageId, navTick]);
 
   // Set up observer once when pages change
   useEffect(() => {
@@ -501,73 +600,237 @@ export function Canvas({ pages, activePageId, onPageSelect, onAddMockPage, hypot
     );
   }
 
+  const renderPageContent = (page: CanvasPage, fillHeight = false) => {
+    if (errorPageIds.has(page.id)) {
+      return (
+        <div className={`flex flex-col items-center justify-center rounded-lg bg-white py-8${fillHeight ? ' h-full' : ''}`} data-testid={`canvas-page-error-${page.id}`}>
+          <AlertTriangle className="size-10 mb-3 text-red-500" />
+          <p className="text-sm font-medium text-slate-900 mb-1">Failed to load page</p>
+          <p className="text-xs text-slate-400 mb-4">Something went wrong loading "{page.title}".</p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleRetryPage(page.id)}
+            data-testid={`canvas-page-retry-${page.id}`}
+          >
+            <RotateCcw className="size-3.5 mr-1.5" />
+            Retry
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <div className={`relative rounded-lg bg-white px-4 py-8${fillHeight ? ' h-full overflow-auto scrollbar-none' : ''}`}>
+        {page.type === 'summary' && page.content ? (
+          <ParagraphPage content={page.content} pages={pages} onPageSelect={onPageSelect} />
+        ) : page.type in PAGE_TYPES && !page.content?.startsWith('mock-') ? (
+          <PageTypeRouter
+            page={page}
+            hasInvestigationData={false}
+            workspacePages={pages}
+            onGenerationComplete={(pageId, content) => {
+              console.log(`Generation complete for ${pageId}:`, content);
+            }}
+            onGenerationError={(pageId, error) => {
+              console.log(`Generation error for ${pageId}:`, error);
+            }}
+          />
+        ) : page.content === 'mock-logs-dbpool' ? (
+          <>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-semibold text-slate-900 tracking-tight">{page.title}</h2>
+              <PageEllipsisMenu onRemove={() => onRemovePage?.(page.id)} />
+            </div>
+            <LogsPageMockDBPool />
+          </>
+        ) : page.content === 'mock-logs-lock' ? (
+          <>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-semibold text-slate-900 tracking-tight">{page.title}</h2>
+              <PageEllipsisMenu onRemove={() => onRemovePage?.(page.id)} />
+            </div>
+            <LogsPageMockLockContention />
+          </>
+        ) : page.content === 'mock-traces-dbpool' ? (
+          <>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-semibold text-slate-900 tracking-tight">{page.title}</h2>
+              <PageEllipsisMenu onRemove={() => onRemovePage?.(page.id)} />
+            </div>
+            <TracesPageMockDBPool />
+          </>
+        ) : page.content === 'mock-traces-lock' ? (
+          <>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-semibold text-slate-900 tracking-tight">{page.title}</h2>
+              <PageEllipsisMenu onRemove={() => onRemovePage?.(page.id)} />
+            </div>
+            <TracesPageMockLockContention />
+          </>
+        ) : page.content === 'mock-note-lock' ? (
+          <NotePageMockLockContention onRemove={() => onRemovePage?.(page.id)} />
+        ) : page.type === 'hypothesis' ? (
+          <HypothesisPage page={page} allPages={pages} onAddMockPage={onAddMockPage} boosted={hypothesisRuledOut} />
+        ) : (
+          <PagePlaceholder type={page.type} content={page.content} title={page.title} pages={pages} onPageSelect={onPageSelect} onRemove={() => onRemovePage?.(page.id)} />
+        )}
+      </div>
+    );
+  };
+
+  // Expand → Collapse: user scrolls down at bottom of overview
+  useEffect(() => {
+    if (overviewCollapsed) { armedRef.current = false; return; }
+    const el = overviewScrollRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      const now = Date.now();
+      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+      if (e.deltaY > 0 && atBottom) {
+        if (armedRef.current && now - lastWheelRef.current > PAUSE_MS) {
+          armedRef.current = false;
+          setOverviewCollapsed(true);
+        } else if (!dwellTimerRef.current && !armedRef.current) {
+          dwellTimerRef.current = setTimeout(() => {
+            armedRef.current = true;
+            dwellTimerRef.current = null;
+          }, DWELL_MS);
+        }
+      } else {
+        if (dwellTimerRef.current) { clearTimeout(dwellTimerRef.current); dwellTimerRef.current = null; }
+        armedRef.current = false;
+      }
+      lastWheelRef.current = now;
+    };
+    el.addEventListener('wheel', onWheel, { passive: true });
+    return () => {
+      el.removeEventListener('wheel', onWheel);
+      if (dwellTimerRef.current) { clearTimeout(dwellTimerRef.current); dwellTimerRef.current = null; }
+      armedRef.current = false;
+    };
+  }, [overviewCollapsed]);
+
+  // Collapse → Expand: user scrolls up at top of pages
+  useEffect(() => {
+    if (!overviewCollapsed) { armedRef.current = false; return; }
+    const el = pagesScrollRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      const now = Date.now();
+      if (e.deltaY < 0 && el.scrollTop <= 0) {
+        if (armedRef.current && now - lastWheelRef.current > PAUSE_MS) {
+          armedRef.current = false;
+          setOverviewCollapsed(false);
+          requestAnimationFrame(() => {
+            const ov = overviewScrollRef.current;
+            if (ov) ov.scrollTop = ov.scrollHeight;
+          });
+        } else if (!dwellTimerRef.current && !armedRef.current) {
+          dwellTimerRef.current = setTimeout(() => {
+            armedRef.current = true;
+            dwellTimerRef.current = null;
+          }, DWELL_MS);
+        }
+      } else {
+        if (dwellTimerRef.current) { clearTimeout(dwellTimerRef.current); dwellTimerRef.current = null; }
+        armedRef.current = false;
+      }
+      lastWheelRef.current = now;
+    };
+    el.addEventListener('wheel', onWheel, { passive: true });
+    return () => {
+      el.removeEventListener('wheel', onWheel);
+      if (dwellTimerRef.current) { clearTimeout(dwellTimerRef.current); dwellTimerRef.current = null; }
+      armedRef.current = false;
+    };
+  }, [overviewCollapsed]);
+
+  const handleBackToOverview = useCallback(() => {
+    setOverviewCollapsed(false);
+    requestAnimationFrame(() => {
+      const ov = overviewScrollRef.current;
+      if (ov) ov.scrollTop = 0;
+    });
+    if (summaryPages.length > 0) {
+      fromObserverRef.current = true;
+      onPageSelect(summaryPages[0].id);
+    }
+  }, [summaryPages, onPageSelect]);
+
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-auto scrollbar-none"
+      className="flex-1 flex flex-col overflow-hidden"
+      style={{ minWidth: 720, maxWidth: 960 }}
       data-testid="canvas"
     >
-      <div className="flex flex-col gap-[12px] h-full">
-        {[...pages]
-          .sort((a, b) => a.order - b.order)
-          .map((page) => (
-            <div
-              key={page.id}
-              data-page-id={page.id}
-              className="shrink-0"
-              style={{ height: 'calc(100% - 24px)' }}
-              data-testid={`canvas-page-${page.id}`}
+      {/* Overview section — animates between full height and 32px */}
+      {summaryPages.map((page) => (
+        <div
+          key={page.id}
+          data-page-id={page.id}
+          className="shrink-0 transition-all duration-300 ease-in-out overflow-hidden"
+          style={{
+            height: overviewCollapsed ? COLLAPSED_HEIGHT : `calc(100% - ${COLLAPSED_HEIGHT + GAP}px)`,
+          }}
+          data-testid={`canvas-page-${page.id}`}
+        >
+          {overviewCollapsed ? (
+            <button
+              onClick={handleBackToOverview}
+              className="flex items-center justify-center gap-2 w-full h-full rounded-b-lg rounded-t-none bg-white px-4 cursor-pointer hover:bg-slate-50 transition-colors"
             >
-              {errorPageIds.has(page.id) ? (
-                <div className="flex h-full flex-col items-center justify-center rounded-lg bg-white py-8" data-testid={`canvas-page-error-${page.id}`}>
-                  <AlertTriangle className="size-10 mb-3 text-red-500" />
-                  <p className="text-sm font-medium text-slate-900 mb-1">Failed to load page</p>
-                  <p className="text-xs text-slate-400 mb-4">Something went wrong loading "{page.title}".</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleRetryPage(page.id)}
-                    data-testid={`canvas-page-retry-${page.id}`}
-                  >
-                    <RotateCcw className="size-3.5 mr-1.5" />
-                    Retry
-                  </Button>
-                </div>
+              <SquareChartGantt className="size-4 text-slate-700" />
+              <span className="text-xs font-medium text-slate-700">Back to overview</span>
+            </button>
+          ) : (
+            <div
+              ref={overviewScrollRef}
+              className="h-full rounded-lg bg-white p-4 overflow-auto scrollbar-none"
+            >
+              {page.type === 'summary' && page.content ? (
+                <ParagraphPage content={page.content} pages={pages} onPageSelect={onPageSelect} />
               ) : (
-                <div className="relative h-full rounded-lg bg-white p-4 overflow-auto scrollbar-none">
-                  {page.type in PAGE_TYPES && !page.content?.startsWith('mock-') ? (
-                    <PageTypeRouter
-                      page={page}
-                      hasInvestigationData={false}
-                      workspacePages={pages}
-                      onGenerationComplete={(pageId, content) => {
-                        console.log(`Generation complete for ${pageId}:`, content);
-                      }}
-                      onGenerationError={(pageId, error) => {
-                        console.log(`Generation error for ${pageId}:`, error);
-                      }}
-                    />
-                  ) : page.content === 'mock-logs-dbpool' ? (
-                    <LogsPageMockDBPool />
-                  ) : page.content === 'mock-logs-lock' ? (
-                    <LogsPageMockLockContention />
-                  ) : page.content === 'mock-traces-dbpool' ? (
-                    <TracesPageMockDBPool />
-                  ) : page.content === 'mock-traces-lock' ? (
-                    <TracesPageMockLockContention />
-                  ) : page.content === 'mock-note-lock' ? (
-                    <NotePageMockLockContention />
-                  ) : page.type === 'hypothesis' ? (
-                    <HypothesisPage page={page} allPages={pages} onAddMockPage={onAddMockPage} boosted={hypothesisRuledOut} />
-                  ) : (
-                    <PagePlaceholder type={page.type} content={page.content} title={page.title} pages={pages} onPageSelect={onPageSelect} />
-                  )}
-                </div>
+                renderPageContent(page, true)
               )}
             </div>
-          ))}
-        <div className="shrink-0 h-[24px]" />
-      </div>
+          )}
+        </div>
+      ))}
+
+      {/* Gap */}
+      <div className="shrink-0" style={{ height: GAP }} />
+
+      {/* Other pages */}
+      {nonSummaryPages.length > 0 && (
+        overviewCollapsed ? (
+          <div ref={pagesScrollRef} className="flex-1 overflow-auto scrollbar-none min-h-0">
+            <div className="flex flex-col gap-0 rounded-lg bg-white overflow-hidden">
+              {nonSummaryPages.map((page, idx) => (
+                <div key={page.id}>
+                  {idx > 0 && <div className="border-t border-slate-200" />}
+                  <div
+                    data-page-id={page.id}
+                    data-testid={`canvas-page-${page.id}`}
+                  >
+                    {renderPageContent(page)}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="shrink-0 h-[24px]" />
+          </div>
+        ) : (
+          <button
+            onClick={() => setOverviewCollapsed(true)}
+            className="shrink-0 flex items-center justify-center gap-2 w-full rounded-t-lg rounded-b-none bg-white px-4 cursor-pointer hover:bg-slate-50 transition-colors"
+            style={{ height: COLLAPSED_HEIGHT }}
+          >
+            <ListChevronsUpDown className="size-4 text-slate-700" />
+            <span className="text-xs font-medium text-slate-700">Inspect details</span>
+          </button>
+        )
+      )}
     </div>
   );
 }

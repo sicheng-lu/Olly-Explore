@@ -1,169 +1,75 @@
 /**
  * Mock traces page for Hypothesis 1: DB Connection Pool Exhaustion.
- * Shows traces where payment transactions open 3x connections and wait on pool.
+ * Simplified waterfall view showing 2 representative traces.
  */
 
-const STATUS_COLORS: Record<string, { bar: string; text: string }> = {
-  ok: { bar: 'bg-oui-link', text: 'text-oui-link' },
-  error: { bar: 'bg-red-500', text: 'text-red-500' },
-};
-
 interface MockSpan {
-  spanId: string;
-  parentSpanId?: string;
-  serviceName: string;
-  operationName: string;
-  startTime: number;
-  duration: number;
+  id: string;
+  depth: number;
+  service: string;
+  operation: string;
+  offsetPct: number;
+  widthPct: number;
+  duration: string;
   status: 'ok' | 'error';
 }
 
-interface MockTrace {
-  traceId: string;
-  totalDuration: number;
-  rootStartTime: number;
-  spans: MockSpan[];
-}
-
-const TRACES: MockTrace[] = [
+const TRACES: { id: string; duration: string; time: string; spans: MockSpan[] }[] = [
   {
-    traceId: 'abc123def456-pool-exhaust-01',
-    totalDuration: 5_200_000,
-    rootStartTime: Date.parse('2026-03-06T10:55:12.334Z'),
+    id: 'abc123…pool-01',
+    duration: '5.20s',
+    time: '10:55:12',
     spans: [
-      { spanId: 's1', serviceName: 'API Gateway', operationName: 'POST /api/v1/payments/process', startTime: 0, duration: 5_200_000, status: 'error' },
-      { spanId: 's2', parentSpanId: 's1', serviceName: 'PaymentService', operationName: 'processPayment', startTime: 50_000, duration: 5_100_000, status: 'error' },
-      { spanId: 's3', parentSpanId: 's2', serviceName: 'PaymentService', operationName: 'acquireConnection (1/3)', startTime: 100_000, duration: 800_000, status: 'ok' },
-      { spanId: 's4', parentSpanId: 's2', serviceName: 'PaymentService', operationName: 'acquireConnection (2/3)', startTime: 120_000, duration: 2_400_000, status: 'error' },
-      { spanId: 's5', parentSpanId: 's2', serviceName: 'PaymentService', operationName: 'acquireConnection (3/3)', startTime: 140_000, duration: 5_003_000, status: 'error' },
-      { spanId: 's6', parentSpanId: 's3', serviceName: 'payments-db', operationName: 'SELECT payment_validations', startTime: 950_000, duration: 120_000, status: 'ok' },
-      { spanId: 's7', parentSpanId: 's4', serviceName: 'payments-db', operationName: 'SELECT fraud_check_rules', startTime: 2_550_000, duration: 95_000, status: 'ok' },
-      { spanId: 's8', parentSpanId: 's5', serviceName: 'payments-db', operationName: 'TIMEOUT waiting for connection', startTime: 5_143_000, duration: 0, status: 'error' },
+      { id: 's1', depth: 0, service: 'API Gateway', operation: 'POST /payments/process', offsetPct: 0, widthPct: 100, duration: '5.20s', status: 'error' },
+      { id: 's2', depth: 1, service: 'PaymentService', operation: 'processPayment', offsetPct: 1, widthPct: 98, duration: '5.10s', status: 'error' },
+      { id: 's3', depth: 2, service: 'PaymentService', operation: 'acquireConnection (1/3)', offsetPct: 2, widthPct: 15, duration: '800ms', status: 'ok' },
+      { id: 's4', depth: 2, service: 'PaymentService', operation: 'acquireConnection (2/3)', offsetPct: 2, widthPct: 46, duration: '2.40s', status: 'error' },
+      { id: 's5', depth: 2, service: 'PaymentService', operation: 'acquireConnection (3/3) — TIMEOUT', offsetPct: 3, widthPct: 96, duration: '5.00s', status: 'error' },
     ],
   },
   {
-    traceId: 'def789abc012-pool-exhaust-02',
-    totalDuration: 3_800_000,
-    rootStartTime: Date.parse('2026-03-06T10:53:22.445Z'),
+    id: 'ghi345…baseline',
+    duration: '420ms',
+    time: '10:41:30',
     spans: [
-      { spanId: 't1', serviceName: 'API Gateway', operationName: 'POST /api/v1/payments/process', startTime: 0, duration: 3_800_000, status: 'error' },
-      { spanId: 't2', parentSpanId: 't1', serviceName: 'PaymentService', operationName: 'processPayment', startTime: 45_000, duration: 3_700_000, status: 'error' },
-      { spanId: 't3', parentSpanId: 't2', serviceName: 'PaymentService', operationName: 'acquireConnection (1/3)', startTime: 80_000, duration: 600_000, status: 'ok' },
-      { spanId: 't4', parentSpanId: 't2', serviceName: 'PaymentService', operationName: 'acquireConnection (2/3)', startTime: 95_000, duration: 1_800_000, status: 'ok' },
-      { spanId: 't5', parentSpanId: 't2', serviceName: 'PaymentService', operationName: 'acquireConnection (3/3)', startTime: 110_000, duration: 3_200_000, status: 'error' },
-      { spanId: 't6', parentSpanId: 't3', serviceName: 'payments-db', operationName: 'SELECT payment_validations FOR UPDATE', startTime: 720_000, duration: 150_000, status: 'ok' },
-      { spanId: 't7', parentSpanId: 't4', serviceName: 'payments-db', operationName: 'SELECT fraud_check_rules', startTime: 1_950_000, duration: 80_000, status: 'ok' },
-      { spanId: 't8', parentSpanId: 't5', serviceName: 'PaymentService', operationName: 'connectionPoolWait', startTime: 110_000, duration: 3_100_000, status: 'error' },
-    ],
-  },
-  {
-    traceId: 'ghi345jkl678-pool-baseline',
-    totalDuration: 420_000,
-    rootStartTime: Date.parse('2026-03-06T10:41:30.220Z'),
-    spans: [
-      { spanId: 'b1', serviceName: 'API Gateway', operationName: 'POST /api/v1/payments/process', startTime: 0, duration: 420_000, status: 'ok' },
-      { spanId: 'b2', parentSpanId: 'b1', serviceName: 'PaymentService (v3.8.1)', operationName: 'processPayment', startTime: 30_000, duration: 360_000, status: 'ok' },
-      { spanId: 'b3', parentSpanId: 'b2', serviceName: 'PaymentService (v3.8.1)', operationName: 'acquireConnection (1/1)', startTime: 50_000, duration: 12_000, status: 'ok' },
-      { spanId: 'b4', parentSpanId: 'b3', serviceName: 'payments-db', operationName: 'SELECT + UPDATE payment', startTime: 70_000, duration: 280_000, status: 'ok' },
-      { spanId: 'b5', parentSpanId: 'b2', serviceName: 'Stripe API', operationName: 'chargeCreate', startTime: 200_000, duration: 150_000, status: 'ok' },
+      { id: 'b1', depth: 0, service: 'API Gateway', operation: 'POST /payments/process', offsetPct: 0, widthPct: 100, duration: '420ms', status: 'ok' },
+      { id: 'b2', depth: 1, service: 'PaymentService (v3.8.1)', operation: 'processPayment', offsetPct: 7, widthPct: 86, duration: '360ms', status: 'ok' },
+      { id: 'b3', depth: 2, service: 'PaymentService (v3.8.1)', operation: 'acquireConnection (1/1)', offsetPct: 12, widthPct: 3, duration: '12ms', status: 'ok' },
+      { id: 'b4', depth: 2, service: 'payments-db', operation: 'SELECT + UPDATE payment', offsetPct: 17, widthPct: 67, duration: '280ms', status: 'ok' },
     ],
   },
 ];
 
-function buildSpanTree(spans: MockSpan[]): { span: MockSpan; depth: number }[] {
-  const childrenMap = new Map<string | undefined, MockSpan[]>();
-  for (const span of spans) {
-    const key = span.parentSpanId ?? undefined;
-    if (!childrenMap.has(key)) childrenMap.set(key, []);
-    childrenMap.get(key)!.push(span);
-  }
-  const result: { span: MockSpan; depth: number }[] = [];
-  function walk(parentId: string | undefined, depth: number) {
-    const children = childrenMap.get(parentId) ?? [];
-    for (const child of children) {
-      result.push({ span: child, depth });
-      walk(child.spanId, depth + 1);
-    }
-  }
-  walk(undefined, 0);
-  return result;
-}
-
-function formatDuration(us: number): string {
-  if (us >= 1_000_000) return `${(us / 1_000_000).toFixed(2)}s`;
-  if (us >= 1_000) return `${(us / 1_000).toFixed(1)}ms`;
-  return `${us}µs`;
-}
-
 export function TracesPageMockDBPool() {
   return (
-    <div data-testid="traces-mock-dbpool" className="flex flex-col gap-4">
-      {TRACES.map((trace) => {
-        const spanRows = buildSpanTree(trace.spans);
-        return (
-          <div key={trace.traceId} className="flex flex-col rounded-lg overflow-hidden border border-oui-lightest-shade bg-white">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-oui-lightest-shade px-4 py-3">
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-semibold text-oui-dark-shade uppercase tracking-wide">Trace ID</span>
-                <span className="text-xs text-oui-darkest-shade font-mono">{trace.traceId}</span>
-              </div>
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-semibold text-oui-dark-shade uppercase tracking-wide">Duration</span>
-                  <span className="text-xs text-oui-darkest-shade">{formatDuration(trace.totalDuration)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-semibold text-oui-dark-shade uppercase tracking-wide">Timestamp</span>
-                  <span className="text-xs text-oui-darkest-shade">{new Date(trace.rootStartTime).toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Column headers */}
-            <div className="grid grid-cols-[160px_200px_1fr_80px] border-b border-oui-lightest-shade px-4 py-1.5 text-[10px] font-semibold text-oui-dark-shade uppercase tracking-wide">
-              <span>Service</span>
-              <span>Operation</span>
-              <span>Span Waterfall</span>
-              <span className="text-right">Duration</span>
-            </div>
-
-            {/* Span rows */}
-            <div className="flex flex-col">
-              {spanRows.map(({ span, depth }) => {
-                const colors = STATUS_COLORS[span.status] ?? STATUS_COLORS.ok;
-                const offsetPct = trace.totalDuration > 0
-                  ? (span.startTime / trace.totalDuration) * 100
-                  : 0;
-                const widthPct = trace.totalDuration > 0
-                  ? Math.max((span.duration / trace.totalDuration) * 100, 1)
-                  : 100;
-
-                return (
-                  <div
-                    key={span.spanId}
-                    className="grid grid-cols-[160px_200px_1fr_80px] items-center border-b border-oui-lightest-shade px-4 py-2.5"
-                  >
-                    <div className="flex items-center gap-1 overflow-hidden" style={{ paddingLeft: `${depth * 12}px` }}>
-                      <span className={`text-xs truncate ${span.status === 'error' ? colors.text : 'text-oui-darkest-shade'}`}>
-                        {span.serviceName}
-                      </span>
-                    </div>
-                    <span className="text-xs text-oui-darkest-shade truncate">{span.operationName}</span>
-                    <div className="px-2 relative h-5">
-                      <div
-                        className={`absolute top-0.5 h-4 rounded ${colors.bar} opacity-80`}
-                        style={{ left: `${offsetPct}%`, width: `${widthPct}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-oui-dark-shade text-right">{formatDuration(span.duration)}</span>
-                  </div>
-                );
-              })}
-            </div>
+    <div data-testid="traces-mock-dbpool" className="flex flex-col gap-3 text-xs">
+      {TRACES.map((trace) => (
+        <div key={trace.id} className="flex flex-col border border-oui-lightest-shade rounded-lg overflow-hidden">
+          <div className="flex items-center gap-4 px-3 py-2 border-b border-oui-lightest-shade">
+            <span className="font-mono text-oui-darkest-shade">{trace.id}</span>
+            <span className="text-oui-dark-shade">{trace.time}</span>
+            <span className="ml-auto text-oui-darkest-shade font-medium">{trace.duration}</span>
           </div>
-        );
-      })}
+          {trace.spans.map((span) => (
+            <div key={span.id} className="grid grid-cols-[140px_1fr_60px] items-center px-3 py-1.5 border-b border-oui-lightest-shade last:border-b-0">
+              <span
+                className={`truncate ${span.status === 'error' ? 'text-red-500' : 'text-oui-darkest-shade'}`}
+                style={{ paddingLeft: `${span.depth * 12}px` }}
+              >
+                {span.service}
+              </span>
+              <div className="relative h-4 mx-2">
+                <div className="absolute inset-y-0 bg-oui-lightest-shade/50 rounded w-full" />
+                <div
+                  className={`absolute inset-y-0 rounded ${span.status === 'error' ? 'bg-red-500/70' : 'bg-oui-link/70'}`}
+                  style={{ left: `${span.offsetPct}%`, width: `${span.widthPct}%` }}
+                />
+              </div>
+              <span className="text-right text-oui-dark-shade">{span.duration}</span>
+            </div>
+          ))}
+        </div>
+      ))}
     </div>
   );
 }

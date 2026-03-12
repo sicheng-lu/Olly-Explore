@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { LayoutDashboard } from 'lucide-react';
+import { ChartLine } from 'lucide-react';
 
 import { GenerationService } from '../../services/generation-service';
 import type { CanvasPage } from '../../types';
@@ -41,7 +41,7 @@ export function DashboardPageEmpty({
   if (state.status === 'idle') {
     return (
       <div className="flex flex-col items-center justify-center gap-3 p-6 text-center" data-testid="dashboard-empty">
-        <LayoutDashboard className="size-10 text-slate-300" />
+        <ChartLine className="size-10 text-slate-300" />
         <p className="text-sm text-slate-500">No dashboard yet</p>
         <button
           type="button"

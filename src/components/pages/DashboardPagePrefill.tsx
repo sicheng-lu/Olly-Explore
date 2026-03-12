@@ -52,7 +52,7 @@ interface DashboardPagePrefillProps {
 
 export function DashboardPagePrefill({ metrics }: DashboardPagePrefillProps) {
   return (
-    <div className="w-full space-y-4 py-4 px-2" data-testid="dashboard-prefill">
+    <div className="w-full space-y-4" data-testid="dashboard-prefill">
       {/* Latency metrics row */}
       {metrics.latency.length > 0 && (
         <div>

@@ -1,4 +1,5 @@
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { PageEllipsisMenu } from '@/components/PageEllipsisMenu';
 
 interface MetricCard {
   title: string;
@@ -88,13 +89,16 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-export function DashboardPage() {
+export function DashboardPage({ onRemove }: { onRemove?: () => void }) {
   return (
-    <div className="w-full space-y-4 py-4 px-2">
+    <div className="w-full space-y-4">
       {/* Header */}
-      <div>
-        <p className="text-base font-semibold text-slate-900 tracking-tight">Payment Processing Service</p>
-        <p className="text-xs text-slate-500 mt-0.5">/api/v1/payments/process — Last 30 minutes</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-base font-semibold text-slate-900 tracking-tight">Dashboard: Payment Processing Service</p>
+          <p className="text-xs text-slate-500 mt-0.5">/api/v1/payments/process — Last 30 minutes</p>
+        </div>
+        <PageEllipsisMenu onRemove={onRemove} />
       </div>
 
       {/* Latency metrics row */}

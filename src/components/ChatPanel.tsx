@@ -2,15 +2,22 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   PenLine,
   History,
-  PanelLeftClose,
   Plus,
+  X,
   ArrowUp,
+  CornerDownLeft,
   AlertCircle,
   RotateCcw,
   Copy,
   RefreshCw,
   ThumbsUp,
   ThumbsDown,
+  Compass,
+  StickyNote,
+  FileText,
+  SquareChartGantt,
+  ChartLine,
+  SquareActivity,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { OllyIcon } from '@/components/OllyIcon';
@@ -52,6 +59,38 @@ function TypewriterText({
   return <>{text.slice(0, charIndex)}{charIndex < text.length && <span className="inline-block w-px h-3 bg-slate-400 animate-pulse ml-0.5 align-middle" />}</>;
 }
 
+/* ── Page icon resolver for attached page cards ── */
+
+function chatPageIcon(type: string) {
+  switch (type) {
+    case 'summary':
+      return SquareChartGantt;
+    case 'dashboard':
+      return ChartLine;
+    case 'hypothesis':
+      return SquareActivity;
+    case 'logs':
+    case 'traces':
+      return Compass;
+    case 'note':
+      return StickyNote;
+    default:
+      return FileText;
+  }
+}
+
+/** Parse page type and title from a mock pageAction pageId */
+function parsePageAction(pageAction?: { type: 'open' | 'navigate'; pageId: string }) {
+  if (!pageAction) return null;
+  const { pageId } = pageAction;
+  // Format: "mock||type||contentKey||title"
+  if (pageId.startsWith('mock||')) {
+    const [, pageType, , title] = pageId.split('||');
+    return { pageType, title };
+  }
+  return null;
+}
+
 /* ── Olly message with typewriter + action icons ── */
 
 function OllyMessage({
@@ -59,12 +98,19 @@ function OllyMessage({
   isTyped,
   onTypeComplete,
   onTick,
+  onPageClick,
+  onNavigateToPage,
 }: {
   msg: ChatMessage;
   isTyped: boolean;
   onTypeComplete: () => void;
   onTick: () => void;
+  onPageClick?: (pageId: string) => void;
+  onNavigateToPage?: (pageId: string) => void;
 }) {
+  const pageInfo = parsePageAction(msg.pageAction);
+  const PageIcon = pageInfo ? chatPageIcon(pageInfo.pageType) : null;
+
   return (
     <div className="flex flex-col gap-2">
       <p className="text-xs text-slate-900 whitespace-pre-wrap leading-relaxed">
@@ -74,6 +120,34 @@ function OllyMessage({
           <TypewriterText text={msg.text} speed={8} onComplete={onTypeComplete} onTick={onTick} />
         )}
       </p>
+      {isTyped && pageInfo && PageIcon && (
+        <button
+          onClick={() => onPageClick?.(msg.pageAction!.pageId)}
+          className="flex items-center gap-2 rounded-lg bg-white/60 px-3 py-2 text-xs text-slate-600 hover:bg-white/80 transition-colors cursor-pointer w-fit max-w-full"
+          aria-label={`Open ${pageInfo.title}`}
+        >
+          <PageIcon className="size-4 shrink-0 text-slate-600" />
+          <span className="truncate">{pageInfo.title}</span>
+        </button>
+      )}
+      {isTyped && msg.attachedPages && msg.attachedPages.length > 0 && (
+        <div className="flex flex-col gap-1">
+          {msg.attachedPages.map((ap) => {
+            const Icon = chatPageIcon(ap.type);
+            return (
+              <button
+                key={ap.id}
+                onClick={() => onNavigateToPage?.(ap.id)}
+                className="flex items-center gap-2 rounded-lg bg-white/60 px-3 py-2 text-xs text-slate-600 hover:bg-white/80 transition-colors cursor-pointer w-fit max-w-full"
+                aria-label={`Open ${ap.title}`}
+              >
+                <Icon className="size-4 shrink-0 text-slate-600" />
+                <span className="truncate">{ap.title}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
       {isTyped && (
         <div className="flex items-center gap-2">
           <button className="p-1 hover:bg-white/50 rounded" aria-label="Copy">
@@ -94,19 +168,88 @@ function OllyMessage({
   );
 }
 
+/* ── Suggested prompts based on last AI response ── */
+
+interface SuggestionMapping {
+  pattern: RegExp;
+  suggestions: string[];
+}
+
+const SUGGESTION_MAPPINGS: SuggestionMapping[] = [
+  {
+    pattern: /I've set up this workspace to investigate/,
+    suggestions: [
+      'Show me logs for Hypothesis: DB Connection Pool Exhaustion',
+      'Show me logs for Hypothesis: Lock Contention on Payment Records',
+    ],
+  },
+  {
+    pattern: /logs related to the DB Connection Pool Exhaustion/i,
+    suggestions: [
+      'Show me traces for Hypothesis: DB Connection Pool Exhaustion',
+    ],
+  },
+  {
+    pattern: /logs for the Lock Contention hypothesis/i,
+    suggestions: [
+      'Show me traces for Hypothesis: Lock Contention on Payment Records',
+    ],
+  },
+  {
+    pattern: /traces showing the connection pool exhaustion pattern/i,
+    suggestions: [
+      'Show me logs for Hypothesis: Lock Contention on Payment Records',
+      'Rule out Hypothesis: DB Connection Pool Exhaustion',
+      'Confirm root casue Trace ID abc123def456-pool-exhaust-01',
+    ],
+  },
+  {
+    pattern: /traces showing the lock contention pattern/i,
+    suggestions: [
+      'Show me logs for Hypothesis: DB Connection Pool Exhaustion',
+      'Rule out Hypothesis: Lock Contention on Payment Records',
+      'Confirm root casue Trace ID abc123def456-pool-exhaust-01',
+    ],
+  },
+  {
+    pattern: /I've ruled out "DB Connection Pool Exhaustion\."/i,
+    suggestions: [
+      'Show me logs for Hypothesis: Lock Contention on Payment Records',
+    ],
+  },
+  {
+    pattern: /I've ruled out "Lock Contention on Payment Records\."/i,
+    suggestions: [
+      'Show me traces for Hypothesis: DB Connection Pool Exhaustion',
+    ],
+  },
+];
+
+function getSuggestionsForLastMessage(messages: ChatMessage[]): string[] {
+  const lastOlly = [...messages].reverse().find((m) => m.sender === 'olly');
+  if (!lastOlly) return [];
+  for (const mapping of SUGGESTION_MAPPINGS) {
+    if (mapping.pattern.test(lastOlly.text)) {
+      return mapping.suggestions;
+    }
+  }
+  return [];
+}
+
+/* ── Chat panel props ── */
+
 interface ChatPanelProps {
   workspaceId: string;
   conversations: Conversation[];
   activeConversationId: string;
-  isCollapsed: boolean;
   animate?: boolean;
   pendingMessage?: ChatMessage | null;
   onPendingMessageConsumed?: () => void;
   ollyThinking?: boolean;
   ollyThinkingPhase?: 'gathering' | 'thinking';
-  onCollapse: () => void;
   onNewConversation: () => void;
   onSelectConversation: (conversationId: string) => void;
+  onCloseConversation: (conversationId: string) => void;
   onOpenPage: (pageId: string) => void;
   onNavigateToPage: (pageId: string) => void;
 }
@@ -114,14 +257,14 @@ interface ChatPanelProps {
 export function ChatPanel({
   conversations,
   activeConversationId,
-  isCollapsed,
   animate = false,
   pendingMessage = null,
   onPendingMessageConsumed,
   ollyThinking = false,
   ollyThinkingPhase = 'gathering',
-  onCollapse,
   onNewConversation,
+  onSelectConversation,
+  onCloseConversation,
   onOpenPage,
   onNavigateToPage,
 }: ChatPanelProps) {
@@ -133,14 +276,7 @@ export function ChatPanel({
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const [settled, setSettled] = useState(!animate);
-
-  useEffect(() => {
-    if (animate) {
-      const frame = requestAnimationFrame(() => setSettled(true));
-      return () => cancelAnimationFrame(frame);
-    }
-  }, [animate]);
+  const [settled, setSettled] = useState(true);
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId);
 
@@ -243,31 +379,53 @@ export function ChatPanel({
     }
   };
 
-  if (isCollapsed) {
-    return (
-      <div
-        className="shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out"
-        style={{ width: 0 }}
-        data-testid="chat-panel"
-      />
-    );
-  }
-
   return (
     <div
-      className="flex flex-col h-full shrink-0 pb-6 overflow-hidden transition-[width] duration-300 ease-in-out"
-      style={{ width: settled ? 360 : '100%' }}
+      className="flex flex-col h-full min-w-[360px] flex-1 pb-6 overflow-hidden transition-[width] duration-300 ease-in-out"
       data-testid="chat-panel"
     >
-      {/* Header */}
-      <div className="flex h-6 items-center gap-3 shrink-0 mb-6">
-        <span
-          className="flex-1 truncate text-sm text-slate-500"
-          data-testid="chat-panel-conversation-name"
-        >
-          {activeConversation?.name ?? 'New Conversation'}
-        </span>
-        <div className="flex items-center gap-3">
+      {/* Header — conversation tabs */}
+      <div className="flex items-center gap-1 shrink-0 mb-3 h-9">
+        <div className="flex-1 min-w-0 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-1">
+            {conversations.map((conv) => {
+              const isActive = conv.id === activeConversationId;
+              return (
+                <button
+                  key={conv.id}
+                  onClick={() => onSelectConversation(conv.id)}
+                  className={`group relative shrink-0 max-w-[160px] h-[26px] rounded-[6px] px-3 text-xs transition-colors ${
+                    isActive
+                      ? 'bg-white/70 text-slate-900'
+                      : 'text-slate-500 hover:bg-white/40'
+                  }`}
+                  data-testid={`chat-tab-${conv.id}`}
+                >
+                  <span className="truncate block">{conv.name}</span>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCloseConversation(conv.id);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.stopPropagation();
+                        onCloseConversation(conv.id);
+                      }
+                    }}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 bg-white opacity-0 group-hover:opacity-100 hover:bg-slate-200 transition-opacity"
+                    aria-label={`Close ${conv.name}`}
+                  >
+                    <X className="size-3" />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
           <button
             onClick={onNewConversation}
             className="flex size-6 items-center justify-center rounded-lg hover:bg-white/50"
@@ -281,14 +439,6 @@ export function ChatPanel({
             aria-label="History"
           >
             <History className="size-4 text-oui-dark-shade" />
-          </button>
-          <button
-            onClick={onCollapse}
-            className="flex size-6 items-center justify-center rounded-lg hover:bg-white/50"
-            aria-label="Collapse chat panel"
-            data-testid="chat-panel-collapse"
-          >
-            <PanelLeftClose className="size-4 text-oui-dark-shade" />
           </button>
         </div>
       </div>
@@ -347,6 +497,12 @@ export function ChatPanel({
                         scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
                       }
                     }}
+                    onPageClick={(pageId) => {
+                      const action = msg.pageAction;
+                      if (action?.type === 'open') onOpenPage(pageId);
+                      else if (action?.type === 'navigate') onNavigateToPage(pageId);
+                    }}
+                    onNavigateToPage={onNavigateToPage}
                   />
                 )}
               </div>
@@ -373,6 +529,26 @@ export function ChatPanel({
           )}
         </div>
       </div>
+
+      {/* Suggested prompts */}
+      {!inputValue.trim() && (() => {
+        const suggestions = getSuggestionsForLastMessage(messages);
+        if (suggestions.length === 0) return null;
+        return (
+          <div className="flex flex-col gap-2 items-end shrink-0 mb-3">
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                onClick={() => { setInputValue(s); textareaRef.current?.focus(); }}
+                className="flex items-center gap-2 rounded-lg px-4 py-1 text-xs text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <span>{s}</span>
+                <CornerDownLeft className="size-4" />
+              </button>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Input Area — same style as home page */}
       <div className="flex flex-col rounded-lg bg-white shrink-0">

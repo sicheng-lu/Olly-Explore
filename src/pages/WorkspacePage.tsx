@@ -8,6 +8,7 @@ import { Canvas } from '@/components/Canvas';
 import { ViewList } from '@/components/ViewList';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useOllyState } from '@/contexts/OllyStateContext';
+import { useTimeline, TIMELINE_ICONS } from '@/contexts/TimelineContext';
 import { PAGE_TYPES as REGISTERED_PAGE_TYPES } from '@/components/pages/page-types';
 import type { CanvasPage } from '@/types';
 
@@ -17,13 +18,13 @@ export function WorkspacePage() {
   const location = useLocation();
   const fromHome = (location.state as { fromHome?: boolean })?.fromHome ?? false;
   const investigatingFromNav = (location.state as { investigating?: boolean })?.investigating ?? false;
-  const { getWorkspace, shareWorkspace, addConversation, addCanvasPage, removeCanvasPage } =
+  const { getWorkspace, shareWorkspace, addConversation, removeConversation, addCanvasPage, removeCanvasPage } =
     useWorkspace();
   const { state: ollyState } = useOllyState();
+  const { addEvent } = useTimeline();
 
   const workspace = getWorkspace(workspaceId ?? '');
 
-  const [chatCollapsed, setChatCollapsed] = useState(false);
   const [viewListCollapsed, setViewListCollapsed] = useState(false);
   const [activeConversationId, setActiveConversationId] = useState('');
   const [activePageId, setActivePageId] = useState('');
@@ -75,8 +76,7 @@ export function WorkspacePage() {
   const handleSettings = () => {}; // placeholder
   const handleMenu = () => setViewListCollapsed((prev) => !prev);
 
-  const handleCollapse = () => setChatCollapsed(true);
-  const handleOllyIconClick = () => setChatCollapsed(false);
+  const handleOllyIconClick = () => {};
   const handleHomeClick = () => navigate('/', { state: { fromWorkspace: true } });
   const handleWorkspaceClick = (id: string) => navigate(`/workspace/${id}`);
 
@@ -90,6 +90,14 @@ export function WorkspacePage() {
     setActiveConversationId(conversationId);
   };
 
+  const handleCloseConversation = (conversationId: string) => {
+    removeConversation(workspace.id, conversationId);
+    if (conversationId === activeConversationId) {
+      const remaining = workspace.conversations.filter((c) => c.id !== conversationId);
+      setActiveConversationId(remaining.length > 0 ? remaining[remaining.length - 1].id : '');
+    }
+  };
+
   const handleOpenPage = (pageId: string) => {
     // Handle rule-out requests from chat (format: "ruleout||hypothesisName")
     if (pageId.startsWith('ruleout||')) {
@@ -100,6 +108,7 @@ export function WorkspacePage() {
       if (page) {
         // Remove the hypothesis page
         removeCanvasPage(workspace.id, page.id);
+        addEvent({ ...TIMELINE_ICONS.hypothesisRuledOut, text: `${page.title.replace(/^Hypothesis:\s*/i, '')} hypothesis ruled out`, pageRef: { pageId: page.id, pageTitle: page.title, pageType: page.type, removed: true } });
         if (page.id === activePageId) {
           const remaining = workspace.canvasPages.filter((p) => p.id !== page.id);
           setActivePageId(remaining.length > 0 ? remaining[0].id : '');
@@ -107,6 +116,9 @@ export function WorkspacePage() {
 
         // Start the thinking flow
         const isDbPool = hypothesisName.toLowerCase().includes('connection pool') || hypothesisName.toLowerCase().includes('db pool');
+        const remainingHypothesis = workspace.canvasPages.find(
+          (p) => p.type === 'hypothesis' && p.id !== page.id
+        );
         setHypothesisRuledOut(true);
         setLogoOverride('./image/Logo-v3.svg');
         setOllyThinking(true);
@@ -130,6 +142,8 @@ export function WorkspacePage() {
               text: responseText,
               timestamp: new Date(),
           });
+          addEvent({ ...TIMELINE_ICONS.ollyAction, text: 'Olly re-evaluated remaining hypotheses' });
+          addEvent({ ...TIMELINE_ICONS.ollyUpdate, text: 'Remaining hypothesis confidence updated', ...(remainingHypothesis ? { pageRef: { pageId: remainingHypothesis.id, pageTitle: remainingHypothesis.title, pageType: remainingHypothesis.type } } : {}) });
         }, 8000);
       }
       return;
@@ -150,12 +164,13 @@ export function WorkspacePage() {
         id: crypto.randomUUID(),
         type: pageType,
         title,
-        order: workspace.canvasPages.length,
+        order: Math.max(0, ...workspace.canvasPages.map((p) => p.order)) + 1,
         content: contentKey,
         addedBy: 'olly',
         addedAt: new Date(),
       };
       addCanvasPage(workspace.id, newPage);
+      addEvent({ ...TIMELINE_ICONS.pageCreated, text: `${title} page created`, pageRef: { pageId: newPage.id, pageTitle: newPage.title, pageType: newPage.type } });
       setActivePageId(newPage.id);
       return;
     }
@@ -164,7 +179,7 @@ export function WorkspacePage() {
       id: pageId,
       type: 'discover',
       title: `Page ${pageId.slice(0, 6)}`,
-      order: workspace.canvasPages.length,
+      order: Math.max(0, ...workspace.canvasPages.map((p) => p.order)) + 1,
       addedBy: 'olly',
       addedAt: new Date(),
     };
@@ -176,15 +191,26 @@ export function WorkspacePage() {
     setActivePageId(pageId);
   };
 
+  const [navTick, setNavTick] = useState(0);
   const handlePageSelect = (pageId: string) => {
     setActivePageId(pageId);
+    setNavTick((t) => t + 1);
   };
 
   const handlePageClose = (pageId: string) => {
     const page = workspace.canvasPages.find((p) => p.id === pageId);
+
+    // Summary pages are permanent landing pages and cannot be removed
+    if (page?.type === 'summary') return;
+
     const isHypothesis = page?.type === 'hypothesis';
 
     removeCanvasPage(workspace.id, pageId);
+
+    if (!isHypothesis && page) {
+      addEvent({ ...TIMELINE_ICONS.userAction, text: `${page.title} page removed`, pageRef: { pageId: page.id, pageTitle: page.title, pageType: page.type, removed: true } });
+    }
+
     // If closing the active page, switch to the first remaining page
     if (pageId === activePageId) {
       const remaining = workspace.canvasPages.filter((p) => p.id !== pageId);
@@ -193,14 +219,17 @@ export function WorkspacePage() {
 
     if (isHypothesis && page) {
       // Switch logo to thinking state
+      addEvent({ ...TIMELINE_ICONS.hypothesisRuledOut, text: `${page.title.replace(/^Hypothesis:\s*/i, '')} hypothesis ruled out`, pageRef: { pageId: page.id, pageTitle: page.title, pageType: page.type, removed: true } });
       setHypothesisRuledOut(true);
       setLogoOverride('./image/Logo-v3.svg');
       setOllyThinking(true);
       setOllyThinkingPhase('gathering');
-      setChatCollapsed(false);
 
       const hypothesisName = page.title.replace(/^Hypothesis:\s*/i, '').trim();
       const isDbPool = hypothesisName.toLowerCase().includes('connection pool') || hypothesisName.toLowerCase().includes('db pool');
+      const remainingHyp = workspace.canvasPages.find(
+        (p) => p.type === 'hypothesis' && p.id !== page.id
+      );
 
       // Switch to "Thinking..." phase after 4s
       setTimeout(() => {
@@ -221,6 +250,8 @@ export function WorkspacePage() {
             text: responseText,
             timestamp: new Date(),
         });
+        addEvent({ ...TIMELINE_ICONS.ollyAction, text: 'Olly re-evaluated remaining hypotheses' });
+        addEvent({ ...TIMELINE_ICONS.ollyUpdate, text: 'Remaining hypothesis confidence updated', ...(remainingHyp ? { pageRef: { pageId: remainingHyp.id, pageTitle: remainingHyp.title, pageType: remainingHyp.type } } : {}) });
       }, 8000);
     }
   };
@@ -232,12 +263,13 @@ export function WorkspacePage() {
       id,
       type: pageType,
       title: pageType.charAt(0).toUpperCase() + pageType.slice(1),
-      order: workspace.canvasPages.length,
+      order: Math.max(0, ...workspace.canvasPages.map((p) => p.order)) + 1,
       addedBy: 'user',
       addedAt: new Date(),
       ...(isRegisteredType ? { generationStatus: 'idle' as const } : {}),
     };
     addCanvasPage(workspace.id, newPage);
+    addEvent({ ...TIMELINE_ICONS.userAction, text: `User added ${newPage.title} page`, pageRef: { pageId: newPage.id, pageTitle: newPage.title, pageType: newPage.type } });
     setActivePageId(id);
   };
 
@@ -245,6 +277,7 @@ export function WorkspacePage() {
     const existing = workspace.canvasPages.find((p) => p.id === page.id);
     if (!existing) {
       addCanvasPage(workspace.id, page);
+      addEvent({ ...TIMELINE_ICONS.pageCreated, text: `${page.title} page created`, pageRef: { pageId: page.id, pageTitle: page.title, pageType: page.type } });
     }
     setActivePageId(page.id);
   };
@@ -290,15 +323,14 @@ export function WorkspacePage() {
             workspaceId={workspace.id}
             conversations={workspace.conversations}
             activeConversationId={activeConversationId}
-            isCollapsed={chatCollapsed}
             animate={fromHome}
             pendingMessage={pendingMessage}
             onPendingMessageConsumed={() => setPendingMessage(null)}
             ollyThinking={ollyThinking}
             ollyThinkingPhase={ollyThinkingPhase}
-            onCollapse={handleCollapse}
             onNewConversation={handleNewConversation}
             onSelectConversation={handleSelectConversation}
+            onCloseConversation={handleCloseConversation}
             onOpenPage={handleOpenPage}
             onNavigateToPage={handleNavigateToPage}
           />
@@ -308,7 +340,9 @@ export function WorkspacePage() {
             activePageId={activePageId}
             onPageSelect={handlePageSelect}
             onAddMockPage={handleAddMockPage}
+            onRemovePage={handlePageClose}
             hypothesisRuledOut={hypothesisRuledOut}
+            navTick={navTick}
           />
 
           <ViewList

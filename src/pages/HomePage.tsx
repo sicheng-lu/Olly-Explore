@@ -2,9 +2,6 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  ListChecks,
-  Network,
-  Server,
   ShieldAlert,
   AlertTriangle,
   Plus,
@@ -23,6 +20,7 @@ import { AlertSkillsPanel } from '@/components/AlertSkillsPanel';
 import { useOllyState } from '@/contexts/OllyStateContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAlertInvestigation } from '@/hooks/useAlertInvestigation';
+import { useTimeline, TIMELINE_ICONS } from '@/contexts/TimelineContext';
 import type { FeedItem } from '@/types';
 
 /* ── Mock data ── */
@@ -1109,26 +1107,24 @@ function ViewToggleGroup({
   onViewChange: (view: string) => void;
 }) {
   const views = [
-    { id: 'feed', icon: ListChecks },
-    { id: 'applicationMap', icon: Network },
-    { id: 'service', icon: Server },
+    { id: 'feed', label: 'Insights' },
+    { id: 'applicationMap', label: 'Application Map' },
+    { id: 'service', label: 'Services' },
   ];
 
   return (
-    <div className="flex items-center rounded-lg overflow-hidden" data-testid="view-toggle">
+    <div className="flex items-center rounded-lg overflow-hidden h-8" data-testid="view-toggle">
       {views.map((view) => {
-        const Icon = view.icon;
         const isActive = activeView === view.id;
         return (
           <button
             key={view.id}
             onClick={() => onViewChange(view.id)}
-            className={`flex items-center justify-center p-2 ${
-              isActive ? 'bg-white' : 'bg-slate-50'
+            className={`flex items-center justify-center px-3 h-full text-xs font-medium ${
+              isActive ? 'bg-white text-blue-600' : 'bg-slate-50 text-oui-dark-shade'
             } transition-colors hover:bg-white`}
-            aria-label={view.id}
           >
-            <Icon className={`size-4 ${isActive ? 'text-blue-600' : 'text-oui-dark-shade'}`} />
+            {view.label}
           </button>
         );
       })}
@@ -1140,7 +1136,7 @@ function ViewToggleGroup({
 
 export function HomePage({ investigatingOverride = false }: { investigatingOverride?: boolean }) {
   const { state: ollyState } = useOllyState();
-  const { createWorkspace, addCanvasPage, addConversation } = useWorkspace();
+  const { createWorkspace, addCanvasPage, addConversation, removeCanvasPage } = useWorkspace();
   const navigate = useNavigate();
   const location = useLocation();
   const fromWorkspace = (location.state as { fromWorkspace?: boolean })?.fromWorkspace ?? false;
@@ -1184,6 +1180,7 @@ export function HomePage({ investigatingOverride = false }: { investigatingOverr
   }, [fromWorkspace]);
 
   useAlertInvestigation();
+  const { seedEvents } = useTimeline();
 
   const isInvestigating = investigatingOverride || ollyState === 'investigating';
   const [insightsReady, setInsightsReady] = useState(!isInvestigating);
@@ -1227,15 +1224,21 @@ export function HomePage({ investigatingOverride = false }: { investigatingOverr
     const workspace = createWorkspace('P95 Latency Investigation');
     workspace.dataSources = [{ id: crypto.randomUUID(), name: 'Investigation', type: 'investigation' }];
 
+    // Remove the auto-created empty summary page — we'll replace it with a prefilled one
+    const autoSummary = workspace.canvasPages.find((p) => p.type === 'summary');
+    if (autoSummary) {
+      removeCanvasPage(workspace.id, autoSummary.id);
+    }
+
     const presetPages: import('@/types').CanvasPage[] = [
       {
         id: crypto.randomUUID(),
-        type: 'paragraph',
-        title: 'Summary',
+        type: 'summary',
+        title: 'Overview',
         order: 0,
         addedBy: 'olly',
         addedAt: new Date(),
-        content: `# P95 Latency Alert — Payment Processing Service\n\nEndpoint /api/v1/payments/process has breached the 800ms latency threshold. Current P95 is 2,012ms, sustained for 13 minutes.\n\n> ⚠️ This incident correlates with the PaymentService v3.8.2 deployment at 10:42 UTC. Immediate attention required.\n\n[tags:Payment service|20,000 Impacted customers|Sev-1|Security risk]\n\n[chart]\n\n---\n\n## Impact\n\n- Checkout completion rate dropped from 94% → 31%\n- ~20,000 customers affected during peak traffic window\n- Downstream services (receipt generation, inventory reservation) experiencing cascading timeouts\n- 💰 Estimated revenue impact: ~$48K/min\n\n[bar:31:100:bg-red-500:Checkout Completion Rate]\n\n---\n\n## What Olly Has Investigated\n\n- ✅ Confirmed latency spike is isolated to /payments/process — other payment endpoints are healthy\n- ✅ Correlated with PaymentService v3.8.2 deployment at 10:42 UTC\n- ✅ Database connection pool for payments-db-primary at 97% saturation\n- ✅ No infrastructure issues detected (CPU 42%, Memory 61%, Network normal)\n- ✅ Upstream dependencies (Stripe API, fraud-check service) responding normally\n- ✅ Identified new ORM query pattern in v3.8.2 that opens 3x connections per transaction\n\n---\n\n## Hypotheses\n\n- 🔴 DB Connection Pool Exhaustion — v3.8.2 introduced a new ORM pattern opening 3 parallel connections per transaction instead of 1, pushing pool utilization from 45% to 97% [view:Hypothesis: DB Connection Pool Exhaustion]\n- 🟠 Lock Contention on Payment Records — A new row-level locking strategy acquires exclusive locks earlier in the transaction, causing 68% of handler threads to enter WAITING state [view:Hypothesis: Lock Contention on Payment Records]\n\n---\n\n## Suggested Next Steps\n\n- Roll back PaymentService v3.8.2 → v3.8.1 to restore normal latency\n- Investigate new database query pattern in v3.8.2 causing connection pool exhaustion\n- Scale up payments-db connection pool as temporary mitigation\n- Enable circuit breaker on checkout flow to prevent cascading failures\n- Review the 2 hypothesis pages for detailed evidence and validation steps`,
+        content: `# Overview: P95 Latency Alert - Payment Processing Service\n\nEndpoint /api/v1/payments/process has breached the 800ms latency threshold. Current P95 is 2,012ms, sustained for 13 minutes.\n\n> ⚠️ This incident correlates with the PaymentService v3.8.2 deployment at 10:42 UTC. Immediate attention required.\n\n[tags:Payment service|20,000 Impacted customers|Sev-1|Security risk]\n\n[chart]\n\n---\n\n## Impact\n\n[stat:Checkout Completion:94% → 31%:critical]\n[stat:Affected Customers:~20,000:critical]\n[stat:Revenue Impact:~$48K/min:critical]\n\n- Checkout completion rate dropped from 94% → 31% during peak traffic window\n- ~20,000 customers affected with failed or timed-out payment attempts\n- Estimated revenue impact: ~$48K/min based on current checkout failure rate\n\n---\n\n## What Olly Has Investigated\n\n- ✅ Latency spike isolated to /payments/process — correlated with v3.8.2 deployment at 10:42 UTC\n- ✅ DB connection pool at 97% saturation; new ORM pattern opens 3x connections per transaction\n- ✅ Infrastructure healthy (CPU 42%, Memory 61%) — upstream dependencies (Stripe, fraud-check) normal\n\n---\n\n## Hypotheses\n\n- 🔴 DB Connection Pool Exhaustion — High confidence · 80% [view:Hypothesis: DB Connection Pool Exhaustion]\n- Pool utilization jumped from 45% → 97% within 5 minutes of v3.8.2 deployment\n- New ORM pattern opens 3 parallel DB connections per transaction instead of 1\n\n- 🟠 Lock Contention on Payment Records — Medium confidence · 65% [view:Hypothesis: Lock Contention on Payment Records]\n- 68% of payment handler threads in WAITING state on DB lock acquisition\n- 12x increase in lock wait times on payments table since 10:42 UTC\n\n---\n\n## Suggested Next Steps\n\n- Roll back PaymentService v3.8.2 → v3.8.1 to restore normal latency\n- Investigate new database query pattern in v3.8.2 causing connection pool exhaustion\n- Scale up payments-db connection pool as temporary mitigation\n- Enable circuit breaker on checkout flow to prevent cascading failures\n- Review the 2 hypothesis pages for detailed evidence and validation steps`,
       },
       {
         id: crypto.randomUUID(),
@@ -1272,10 +1275,25 @@ export function HomePage({ investigatingOverride = false }: { investigatingOverr
       id: crypto.randomUUID(),
       sender: 'olly',
       text: `I've set up this workspace to investigate the P95 latency spike on /api/v1/payments/process. Here's what I found so far:\n\n• Current P95 latency is 2,012ms — well above the 800ms threshold\n• The spike correlates with the PaymentService v3.8.2 deployment at 10:42 UTC\n• DB connection pool is at 97% saturation, up from a 45% baseline\n• ~20,000 customers are affected, with checkout completion dropping to 31%\n\nI've prepared a Summary page with full details, a Dashboard for live metrics, and two Hypothesis pages exploring likely root causes (connection pool exhaustion and lock contention).\n\nLet me know how you'd like to proceed — I can help with rollback analysis, deeper trace inspection, or anything else.`,
+      attachedPages: presetPages.map((p) => ({ id: p.id, type: p.type, title: p.title })),
       timestamp: new Date(),
     };
 
     addConversation(workspace.id, 'P95 Latency Investigation', [ollyWelcomeMessage]);
+
+    // Seed timeline with initial investigation events
+    const now = new Date();
+    const fmt = (offset: number) => {
+      const d = new Date(now.getTime() + offset * 60000);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) + ' UTC';
+    };
+    seedEvents([
+      { id: crypto.randomUUID(), ...TIMELINE_ICONS.ollyAction, text: 'Olly started investigation for P95 latency spike', time: fmt(-5), pageRef: { pageId: presetPages[0].id, pageTitle: presetPages[0].title, pageType: presetPages[0].type } },
+      { id: crypto.randomUUID(), ...TIMELINE_ICONS.pageCreated, text: 'Dashboard page created', time: fmt(-4), pageRef: { pageId: presetPages[1].id, pageTitle: presetPages[1].title, pageType: presetPages[1].type } },
+      { id: crypto.randomUUID(), ...TIMELINE_ICONS.hypothesisCreated, text: 'Hypothesis: DB Connection Pool Exhaustion created', time: fmt(-4), pageRef: { pageId: presetPages[2].id, pageTitle: presetPages[2].title, pageType: presetPages[2].type } },
+      { id: crypto.randomUUID(), ...TIMELINE_ICONS.hypothesisCreated, text: 'Hypothesis: Lock Contention on Payment Records created', time: fmt(-4), pageRef: { pageId: presetPages[3].id, pageTitle: presetPages[3].title, pageType: presetPages[3].type } },
+      { id: crypto.randomUUID(), ...TIMELINE_ICONS.ollyUpdate, text: 'Olly updated impact metrics — 20K customers affected', time: fmt(-3) },
+    ]);
 
     navigate(`/workspace/${workspace.id}`, { state: { fromHome: true, investigating: true } });
   };
@@ -1307,17 +1325,17 @@ export function HomePage({ investigatingOverride = false }: { investigatingOverr
       />
 
       {/* Main Content Area */}
-      <main className="relative z-10 flex flex-1 overflow-hidden">
-        <div className="flex flex-1 flex-col items-center justify-between pb-6 pt-12">
+      <main className="relative z-10 flex min-w-0 flex-1 overflow-hidden">
+        <div className="flex w-full min-w-0 flex-1 flex-col items-center justify-between overflow-hidden pb-6 pt-12">
           {/* Scrollable content */}
-          <div className="flex flex-1 flex-col items-center gap-6 w-[1000px] max-w-full px-6 overflow-y-auto">
+          <div ref={scrollContainerRef} className="flex flex-1 flex-col items-center gap-6 w-full min-w-0 max-w-[1200px] px-6 overflow-y-auto">
             {/* Olly Icon */}
             <OllyIcon size="large" logoSrc={isInvestigating ? (insightsReady ? './image/Logo-v2.svg' : './image/Logo-v3.svg') : undefined} />
 
             {/* Greeting row + view toggle + config */}
-            <div className="flex w-full items-center justify-between">
+            <div className="flex w-full min-w-0 items-center justify-between gap-4">
               <h1
-                className="text-base font-bold text-black tracking-tight"
+                className="min-w-0 text-base font-bold text-black tracking-tight"
                 data-testid="greeting"
               >
                 {isInvestigating
@@ -1372,7 +1390,7 @@ export function HomePage({ investigatingOverride = false }: { investigatingOverr
           </div>
 
           {/* Bottom: Ask Olly input + Suggested Prompts */}
-          <div className="w-[1000px] max-w-full px-6 shrink-0">
+          <div className="w-full max-w-[1200px] px-6 shrink-0">
             {/* Compact "Ask Olly" row — fades/slides out when expanded */}
             <div
               className="flex items-center gap-3 flex-nowrap overflow-x-auto scrollbar-none transition-all duration-300 ease-in-out"
@@ -1412,7 +1430,7 @@ export function HomePage({ investigatingOverride = false }: { investigatingOverr
               <SuggestedPrompts onPromptClick={handlePromptClick} />
               <div
                 className="flex flex-col rounded-lg bg-white transition-[max-width] duration-300 ease-in-out"
-                style={{ maxWidth: inputExpanded ? 1000 : 360 }}
+                style={{ maxWidth: inputExpanded ? '100%' : 360 }}
                 data-testid="input-group"
               >
                 <textarea

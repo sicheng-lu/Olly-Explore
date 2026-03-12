@@ -243,3 +243,15 @@
 .svc-bar-pulse {
   animation: svcBarPulse 3s ease-in-out infinite;
 }
+
+
+@keyframes timeline-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

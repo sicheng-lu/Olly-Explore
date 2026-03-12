@@ -6,7 +6,7 @@ export function NotePagePrefill({ noteContent }: NotePagePrefillProps) {
   const blocks = noteContent.split('\n\n');
 
   return (
-    <div className="w-full space-y-4 py-4 px-2" data-testid="note-prefill">
+    <div className="w-full space-y-4" data-testid="note-prefill">
       {blocks.map((block, i) => {
         if (block.startsWith('# '))
           return (
