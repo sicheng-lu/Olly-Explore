@@ -61,7 +61,8 @@ export interface SuggestedPrompt {
 
 export interface FeedItem {
   id: string;
-  type: 'event' | 'insight' | 'scaling';
+  type: 'event' | 'insight' | 'action' | 'alert';
+  domain?: 'observability' | 'search' | 'security';
   title: string;
   description: string;
   timestamp: Date;

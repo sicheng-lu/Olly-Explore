@@ -157,6 +157,130 @@ function ParagraphPage({
               ))}
             </div>
           );
+        // Search tags: [search-tags:tag1|tag2|tag3]
+        if (block.startsWith('[search-tags:'))
+          return (
+            <div key={i} className="flex flex-wrap items-center gap-2">
+              {block.slice(13, -1).split('|').map((tag, j) => (
+                <span key={j} className="rounded-lg bg-violet-700 px-2.5 py-1.5 text-xs text-white">
+                  {tag.trim()}
+                </span>
+              ))}
+            </div>
+          );
+        // Search CTR chart: [search-ctr-chart]
+        if (block.trim() === '[search-ctr-chart]')
+          return (
+            <div key={i} className="grid grid-cols-2 gap-8">
+              {/* CTR Over Time chart */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-slate-500">CTR — "wireless headphones" (7 days)</span>
+                  <span className="text-xs font-semibold text-red-600">3.1%</span>
+                </div>
+                <div className="relative h-[80px] w-full">
+                  <svg viewBox="0 0 400 80" className="w-full h-full" preserveAspectRatio="none">
+                    <line x1="0" y1="68" x2="400" y2="68" stroke="#e2e8f0" strokeWidth="0.5" />
+                    <line x1="0" y1="48" x2="400" y2="48" stroke="#e2e8f0" strokeWidth="0.5" />
+                    <line x1="0" y1="28" x2="400" y2="28" stroke="#e2e8f0" strokeWidth="0.5" />
+                    <line x1="0" y1="18" x2="400" y2="18" stroke="#10b981" strokeWidth="1" strokeDasharray="4 3" opacity="0.5" />
+                    <text x="350" y="14" fill="#10b981" fontSize="8" opacity="0.7">baseline 12.4%</text>
+                    <defs>
+                      <linearGradient id="searchCtrGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.2" />
+                        <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.02" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d="M0,18 L30,18 L60,18 L90,19 L120,20 L150,22 L170,28 L190,38 L220,48 L260,55 L300,60 L340,63 L370,65 L400,66 L400,80 L0,80 Z"
+                      fill="url(#searchCtrGrad)"
+                    />
+                    <path
+                      d="M0,18 L30,18 L60,18 L90,19 L120,20 L150,22 L170,28 L190,38 L220,48 L260,55 L300,60 L340,63 L370,65 L400,66"
+                      fill="none" stroke="#8b5cf6" strokeWidth="1.5" strokeLinejoin="round"
+                    />
+                    <line x1="170" y1="0" x2="170" y2="80" stroke="#ef4444" strokeWidth="1" strokeDasharray="3 2" opacity="0.5" />
+                    <text x="174" y="10" fill="#ef4444" fontSize="7" opacity="0.8">Mar 5 mapping change</text>
+                    <circle cx="400" cy="66" r="3" fill="#8b5cf6" />
+                    <circle cx="400" cy="66" r="5" fill="#8b5cf6" opacity="0.3">
+                      <animate attributeName="r" values="5;8;5" dur="2s" repeatCount="indefinite" />
+                      <animate attributeName="opacity" values="0.3;0.1;0.3" dur="2s" repeatCount="indefinite" />
+                    </circle>
+                  </svg>
+                </div>
+                <div className="flex items-center justify-between mt-1 text-[10px] text-slate-400">
+                  <span>Mar 5</span><span>Mar 7</span><span>Mar 9</span><span>Mar 12</span>
+                </div>
+              </div>
+              {/* Top Results Breakdown */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs text-slate-500">Top-10 Result Composition</span>
+                  <div className="flex items-center gap-3 text-[10px] text-slate-400">
+                    <span className="flex items-center gap-1"><span className="inline-block h-1.5 w-3 rounded-full bg-violet-400" /> Headphones</span>
+                    <span className="flex items-center gap-1"><span className="inline-block h-1.5 w-3 rounded-full bg-amber-400" /> Accessories</span>
+                    <span className="flex items-center gap-1"><span className="inline-block h-1.5 w-3 rounded-full bg-slate-300" /> Other</span>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2.5">
+                  {[
+                    { name: 'Pre-change', headphones: 80, accessories: 10, other: 10 },
+                    { name: 'Post-change', headphones: 20, accessories: 65, other: 15 },
+                    { name: 'With fix', headphones: 85, accessories: 10, other: 5 },
+                  ].map((row) => (
+                    <div key={row.name} className="flex items-center gap-2">
+                      <span className="w-20 text-[11px] text-slate-500 text-right shrink-0">{row.name}</span>
+                      <div className="flex-1 flex h-2 rounded-full overflow-hidden bg-slate-100">
+                        <div className="h-full bg-violet-400 transition-all" style={{ width: `${row.headphones}%` }} />
+                        <div className="h-full bg-amber-400 transition-all" style={{ width: `${row.accessories}%` }} />
+                        <div className="h-full bg-slate-300 transition-all" style={{ width: `${row.other}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        // Search comparison table: [search-comparison-table]
+        if (block.trim() === '[search-comparison-table]')
+          return (
+            <div key={i} className="w-full overflow-hidden rounded-lg border border-slate-200">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-slate-50 text-left">
+                    <th className="px-3 py-2 font-medium text-slate-500">Query Variant</th>
+                    <th className="px-3 py-2 font-medium text-slate-500 text-right">NDCG@10</th>
+                    <th className="px-3 py-2 font-medium text-slate-500 text-right">P@5</th>
+                    <th className="px-3 py-2 font-medium text-slate-500 text-right">MRR</th>
+                    <th className="px-3 py-2 font-medium text-slate-500 text-right">Pred. CTR</th>
+                    <th className="px-3 py-2 font-medium text-slate-500 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { name: 'Current production', ndcg: '0.34', p5: '0.28', mrr: '0.31', ctr: '3.1%', status: 'baseline', statusColor: 'bg-red-100 text-red-700' },
+                    { name: 'Variant A: name^2', ndcg: '0.58', p5: '0.52', mrr: '0.55', ctr: '7.2%', status: 'tested', statusColor: 'bg-slate-100 text-slate-600' },
+                    { name: 'Variant B: name^3', ndcg: '0.71', p5: '0.65', mrr: '0.68', ctr: '10.8%', status: 'tested', statusColor: 'bg-slate-100 text-slate-600' },
+                    { name: 'Variant C: name^3 + reweight', ndcg: '0.78', p5: '0.74', mrr: '0.76', ctr: '14.1%', status: 'deployed ✅', statusColor: 'bg-emerald-100 text-emerald-700' },
+                    { name: 'Variant D: function_score decay', ndcg: '0.72', p5: '0.66', mrr: '0.69', ctr: '11.2%', status: 'tested', statusColor: 'bg-slate-100 text-slate-600' },
+                  ].map((row) => (
+                    <tr key={row.name} className="border-t border-slate-100">
+                      <td className="px-3 py-2 text-slate-700">{row.name}</td>
+                      <td className="px-3 py-2 text-right font-mono text-slate-600">{row.ndcg}</td>
+                      <td className="px-3 py-2 text-right font-mono text-slate-600">{row.p5}</td>
+                      <td className="px-3 py-2 text-right font-mono text-slate-600">{row.mrr}</td>
+                      <td className="px-3 py-2 text-right font-mono text-slate-600">{row.ctr}</td>
+                      <td className="px-3 py-2 text-center">
+                        <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${row.statusColor}`}>
+                          {row.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
         // Progress bar: [bar:value:max:color:label]
         if (block.startsWith('[bar:')) {
           const parts = block.slice(5, -1).split(':');
