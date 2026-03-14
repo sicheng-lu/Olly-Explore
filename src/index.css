@@ -271,3 +271,13 @@
 .animate-robot-antenna-pulse {
   animation: robot-antenna-pulse 1.5s ease-in-out infinite;
 }
+
+/* OpenSearch logo animation */
+@keyframes opensearch-pulse {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  50% { transform: scale(1.08) rotate(5deg); opacity: 0.75; }
+}
+
+.animate-opensearch-pulse {
+  animation: opensearch-pulse 2s ease-in-out infinite;
+}

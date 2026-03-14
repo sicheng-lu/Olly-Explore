@@ -60,6 +60,10 @@ export interface DialogMessage {
   text: string;
   artifact?: ArtifactData;
   delayMs?: number;
+  /** Suggested next prompt shown after agent finishes streaming. User must click to continue. */
+  nextPrompt?: string;
+  /** Agent-framed suggestion text shown to the user (e.g. "Would you like me to...") */
+  nextPromptSuggestion?: string;
 }
 
 export interface MockDialog {
@@ -85,6 +89,8 @@ const systemArchitectureDialog: MockDialog = {
       sender: 'agent',
       text: 'I\'ll pull up the current cluster topology. Let me map out the services and their connections for you.',
       delayMs: 1500,
+      nextPrompt: 'I see Data Node 4 is in error state. What\'s happening there?',
+      nextPromptSuggestion: 'Would you like me to investigate the error state on Data Node 4?',
       artifact: {
         type: 'diagram',
         title: 'OpenSearch Cluster Architecture',
@@ -126,6 +132,8 @@ const systemArchitectureDialog: MockDialog = {
       sender: 'agent',
       text: 'Data Node 4 is experiencing high JVM heap pressure — it\'s been hovering above 90% for the last 2 hours. The connection from Coordinator 2 is intermittent (shown as dashed). This node holds 3 hot indices that are receiving heavy write traffic from the ingest queue. I\'d recommend rebalancing those shards across the healthy nodes.',
       delayMs: 2000,
+      nextPrompt: 'Can you show me the resource utilization across all data nodes?',
+      nextPromptSuggestion: 'Would you like me to pull up the resource utilization across all data nodes?',
     },
     {
       id: 'sa-5',
@@ -171,6 +179,8 @@ const performanceDialog: MockDialog = {
       sender: 'agent',
       text: 'I\'ve pulled the P99 and P50 latency metrics for the last 24 hours. There\'s a clear spike starting around 14:00 UTC that hasn\'t fully recovered.',
       delayMs: 2000,
+      nextPrompt: 'What\'s causing the spike? Can you break it down by query type?',
+      nextPromptSuggestion: 'Would you like me to break down the spike by query type?',
       artifact: {
         type: 'chart',
         chartType: 'line',
@@ -203,6 +213,8 @@ const performanceDialog: MockDialog = {
       sender: 'agent',
       text: 'Here\'s the latency breakdown by query type. Aggregation queries are the primary contributor — they jumped 4x during the spike window. This correlates with a new dashboard that was deployed at 13:45 UTC running heavy date histogram aggregations.',
       delayMs: 2200,
+      nextPrompt: 'Can you suggest an optimized query for those aggregations?',
+      nextPromptSuggestion: 'Would you like me to suggest an optimized query for those aggregations?',
       artifact: {
         type: 'chart',
         chartType: 'bar',
@@ -295,6 +307,8 @@ const securityAuditDialog: MockDialog = {
       sender: 'agent',
       text: 'I\'ve completed the security audit. Here\'s a summary of findings across authentication, encryption, access control, and audit logging:',
       delayMs: 2000,
+      nextPrompt: 'That anonymous access issue is critical. Show me how to disable it.',
+      nextPromptSuggestion: 'Would you like me to show you how to disable anonymous access?',
       artifact: {
         type: 'markdown',
         title: 'Security Audit Report',
@@ -326,6 +340,8 @@ const securityAuditDialog: MockDialog = {
       sender: 'agent',
       text: 'Here\'s the configuration change needed to disable anonymous access. You\'ll need to update the security config and apply it with securityadmin:',
       delayMs: 1800,
+      nextPrompt: 'Can you show me the access pattern topology so I can see which services are connecting?',
+      nextPromptSuggestion: 'Would you like me to map out the access pattern topology?',
       artifact: {
         type: 'code',
         title: 'Disable Anonymous Access',
